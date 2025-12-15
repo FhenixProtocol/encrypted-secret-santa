@@ -1,35 +1,41 @@
-# Dependencies
-node_modules/
-.pnp
-.pnp.js
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Next.js
-.next/
-out/
-build/
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
-# Environment
-.env
-.env.local
-.env.*.local
+# testing
+/coverage
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
+# next.js
+/.next/
+/out/
 
-# OS
+# production
+/build
+
+# misc
 .DS_Store
-Thumbs.db
+*.pem
 
-# Logs
-*.log
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
-# TypeScript
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# Copied contract artifacts (regenerated on build)
-src/contracts/contracts/
-src/contracts/typechain-types/

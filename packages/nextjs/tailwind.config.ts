@@ -1,70 +1,69 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: "class",
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
       colors: {
-        // Base blue color scheme
-        "base-blue": {
-          50: "#eff6ff",
-          100: "#dbeafe",
-          200: "#bfdbfe",
-          300: "#93c5fd",
-          400: "#60a5fa",
-          500: "#0052FF", // Base primary blue
-          600: "#0047e1",
-          700: "#003bbf",
-          800: "#002f9c",
-          900: "#002479",
-          950: "#001a56",
-        },
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-        },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
+        fhenix: {
+          primary: "#00E5FF", // Bright Cyan
+          secondary: "#2979FF", // Electric Blue
+          dark: "#020617", // Deepest Background
+          card: "#0F172A", // Card Background
+          border: "#1E293B", // Border Color
+          text: "#F8FAFC", // Main Text
+          muted: "#94A3B8", // Muted Text
+        }
       },
       fontFamily: {
-        sans: ["DM Sans", "system-ui", "sans-serif"],
+        sans: ['ClashDisplay', 'var(--font-geist-sans)', 'sans-serif'],
+        mono: ['var(--font-geist-mono)', 'monospace'],
+        display: ['ClashDisplay', 'sans-serif'],
+        pixel: ['Visitor', 'monospace'],
       },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-      },
+      backgroundImage: {
+        'fhenix-gradient': 'linear-gradient(to right, #00E5FF, #2979FF)',
+      }
     },
   },
-  plugins: [],
+  plugins: [require("daisyui")],
+  daisyui: {
+    themes: [
+      {
+        fhenixlight: {
+          "primary": "#00E5FF",
+          "secondary": "#2979FF",
+          "accent": "#00E5FF",
+          "neutral": "#0F172A",
+          "base-100": "#FFFFFF",
+          "base-200": "#F1F5F9",
+          "base-300": "#E2E8F0",
+          "base-content": "#0F172A",
+          "info": "#00E5FF",
+          "success": "#00C853",
+          "warning": "#FFD600",
+          "error": "#FF1744",
+        },
+        fhenixdark: {
+          "primary": "#00E5FF",
+          "secondary": "#2979FF",
+          "accent": "#00E5FF",
+          "neutral": "#1E293B",
+          "base-100": "#0F172A",
+          "base-200": "#020617",
+          "base-300": "#1E293B",
+          "base-content": "#F8FAFC",
+          "info": "#00E5FF",
+          "success": "#00C853",
+          "warning": "#FFD600",
+          "error": "#FF1744",
+        },
+      },
+    ],
+  },
 };
-
 export default config;

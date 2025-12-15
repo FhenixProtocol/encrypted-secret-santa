@@ -1,8 +1,13 @@
 import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-deploy";
-import "cofhe-hardhat-plugin";
 import * as dotenv from "dotenv";
+
+// Optional: only import cofhe plugin if available
+try {
+  require("cofhe-hardhat-plugin");
+} catch {
+  console.log("cofhe-hardhat-plugin not available, skipping...");
+}
 
 dotenv.config();
 
@@ -20,16 +25,6 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       chainId: 31337,
-    },
-    "eth-sepolia": {
-      url: process.env.SEPOLIA_RPC_URL || "https://ethereum-sepolia.publicnode.com",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 11155111,
-    },
-    "arb-sepolia": {
-      url: process.env.ARBITRUM_SEPOLIA_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 421614,
     },
     "base-sepolia": {
       url: process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org",
