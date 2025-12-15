@@ -1,0 +1,12 @@
+{
+  "name": "encrypted-santa",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "dev": "bun --filter nextjs dev",
+    "build": "bun run --filter hardhat compile && bun run --filter hardhat copy-artifacts && bun --filter nextjs build",
+    "deploy": "bun --filter hardhat deploy",
+    "test": "bun --filter hardhat test",
+    "clean": "rm -rf packages/*/node_modules packages/*/.next packages/*/dist"
+  }
+}
