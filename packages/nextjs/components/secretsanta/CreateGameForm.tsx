@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Loader2, Gift, AlertCircle } from "lucide-react";
+import { Plus, Loader2, Gift, AlertCircle, Lock, Eye, EyeOff } from "lucide-react";
 import { useCreateGame } from "@/hooks/useSecretSanta";
 import { useCofheStore } from "@/services/store/cofheStore";
 import { useAccount } from "wagmi";
@@ -15,14 +15,17 @@ export const CreateGameForm = ({ onSuccess }: CreateGameFormProps) => {
   const { isInitialized } = useCofheStore();
   const { createGame, isLoading, isSuccess, error } = useCreateGame();
   const [gameName, setGameName] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!gameName.trim()) return;
 
-    const hash = await createGame(gameName.trim());
+    const hash = await createGame(gameName.trim(), password || undefined);
     if (hash) {
       setGameName("");
+      setPassword("");
       onSuccess?.();
     }
   };
@@ -54,6 +57,35 @@ export const CreateGameForm = ({ onSuccess }: CreateGameFormProps) => {
               className="input w-full bg-white border border-santa-deepRed/20 focus:border-fhenix-purple rounded-lg text-santa-deepRed placeholder:text-santa-deepRed/40"
               disabled={!isConnected || isLoading}
             />
+          </div>
+
+          <div>
+            <label className="text-sm text-santa-deepRed/80 mb-2 block font-medium">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4" />
+                Password (optional)
+              </div>
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Leave empty for public game"
+                className="input w-full bg-white border border-santa-deepRed/20 focus:border-fhenix-purple rounded-lg text-santa-deepRed placeholder:text-santa-deepRed/40 pr-10"
+                disabled={!isConnected || isLoading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-santa-deepRed/40 hover:text-santa-deepRed transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-santa-deepRed/50 mt-1">
+              If set, players will need this password to join
+            </p>
           </div>
 
           {error && (

@@ -7,6 +7,7 @@ import { useIsRegistered } from "@/hooks/useSecretSanta";
 import { ParticipantsList } from "./ParticipantsList";
 import { TargetReveal } from "./TargetReveal";
 import { GameActions } from "./GameActions";
+import { PermitCard } from "./PermitCard";
 import { useAccount } from "wagmi";
 
 interface GameDetailsProps {
@@ -101,9 +102,16 @@ export const GameDetails = ({ gameId, onBack }: GameDetailsProps) => {
         <div className="bg-pastel-cream rounded-sm p-5">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h2 className="text-2xl font-bold font-display text-santa-deepRed mb-2">
-                {gameInfo.name}
-              </h2>
+              <div className="flex items-center gap-2 mb-2">
+                <h2 className="text-2xl font-bold font-display text-santa-deepRed">
+                  {gameInfo.name}
+                </h2>
+                {gameInfo.hasPassword && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-santa-deepRed/10 rounded-lg" title="Password protected">
+                    <Lock className="w-4 h-4 text-santa-deepRed/70" />
+                  </div>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-santa-deepRed/60">Status:</span>
                 <span className={`text-sm font-medium px-2 py-0.5 rounded ${getStateStyles()}`}>
@@ -179,6 +187,9 @@ export const GameDetails = ({ gameId, onBack }: GameDetailsProps) => {
               }}
             />
           )}
+
+          {/* Permit Management */}
+          {isRegistered && <PermitCard />}
         </div>
 
         {/* Right Column: Target Reveal */}

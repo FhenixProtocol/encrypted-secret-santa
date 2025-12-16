@@ -8,6 +8,7 @@ import {
   JoinGameForm,
   GamesList,
   GameDetails,
+  PermitCard,
 } from "@/components/secretsanta";
 import { GameInfo } from "@/hooks/useSecretSanta";
 import { useCofhe } from "@/hooks/useCofhe";
@@ -152,7 +153,7 @@ export default function Home() {
         ) : (
           <div className="space-y-4">
             {/* Stacked Photo Cards - Create & Join */}
-            <div className="relative flex justify-center items-center min-h-[320px] pt-6">
+            <div className="relative flex justify-center items-center min-h-[480px] pt-6">
               {/* Tab buttons floating on top */}
               <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-30 flex gap-2">
                 <button
@@ -209,6 +210,11 @@ export default function Home() {
                 refreshTrigger={refreshKey}
                 onGameSelect={handleGameSelect}
               />
+            </div>
+
+            {/* Permit Management Card */}
+            <div className="max-w-sm mx-auto">
+              <PermitCard />
             </div>
           </div>
         )}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import {
   X,
   Key,
@@ -34,9 +35,24 @@ export const PermitModal = ({ isOpen, onClose }: PermitModalProps) => {
   const chainName =
     chains.find((c) => c.id === chainId)?.name || `Chain ${chainId}`;
 
+  // Track if we just generated a permit (to auto-close)
+  const wasGenerating = useRef(false);
+
+  // Auto-close modal when permit is successfully generated
+  useEffect(() => {
+    if (wasGenerating.current && hasValidPermit && !isGeneratingPermit) {
+      wasGenerating.current = false;
+      const timer = setTimeout(() => {
+        onClose();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [hasValidPermit, isGeneratingPermit, onClose]);
+
   if (!isOpen) return null;
 
   const handleGeneratePermit = async () => {
+    wasGenerating.current = true;
     await generatePermit();
   };
 

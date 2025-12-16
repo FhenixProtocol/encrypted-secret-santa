@@ -6,3 +6,4 @@ export { GameDetails } from "./GameDetails";
 export { ParticipantsList } from "./ParticipantsList";
 export { TargetReveal } from "./TargetReveal";
 export { GameActions } from "./GameActions";
+export { PermitCard } from "./PermitCard";
