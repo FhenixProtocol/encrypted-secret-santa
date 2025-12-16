@@ -60,107 +60,106 @@ export const TargetReveal = ({ gameId, refreshTrigger }: TargetRevealProps) => {
   const targetAddress = getTargetAddress();
 
   return (
-    <div className="p-6 bg-base-100 border border-base-300 rounded-sm relative overflow-hidden">
-      {/* Corner accents */}
-      <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-primary"></div>
-      <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-primary"></div>
-      <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-primary"></div>
-      <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-primary"></div>
-
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-primary/10 rounded-sm">
-          <Gift className="w-5 h-5 text-primary" />
+    <div className="bg-white p-4 pb-8 rounded-sm shadow-polaroid transform rotate-2 hover:rotate-0 transition-transform duration-300 encrypted-glow">
+      <div className="bg-pastel-coral rounded-sm p-5 relative overflow-hidden">
+        {/* Subtle encryption scan line effect */}
+        <div className="absolute inset-0 pointer-events-none opacity-20">
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-fhenix-purple to-transparent animate-pulse" />
         </div>
-        <h3 className="text-lg font-bold font-display uppercase tracking-wide text-base-content">
-          Your Secret Assignment
-        </h3>
-      </div>
 
-      <p className="text-sm text-base-content/60 mb-6">
-        Your assignment is encrypted on-chain. Only you can decrypt it with your permit.
-      </p>
-
-      {error && (
-        <div className="p-3 mb-4 bg-red-500/10 border border-red-500/30 rounded-sm flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-500">{error}</p>
+        <div className="flex items-center gap-3 mb-4">
+          <Gift className="w-5 h-5 text-santa-deepRed" />
+          <h3 className="text-lg font-bold font-display text-santa-deepRed">
+            Your Secret Assignment
+          </h3>
         </div>
-      )}
 
-      {!encryptedIndex ? (
-        <div className="py-8 text-center">
-          <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-4" />
-          <p className="text-sm text-base-content/60">Loading your encrypted assignment...</p>
-        </div>
-      ) : showTarget && targetAddress ? (
-        <div className="space-y-4">
-          <div className="p-6 bg-primary/5 border border-primary/30 rounded-sm text-center">
-            <p className="text-sm font-pixel text-primary uppercase tracking-widest mb-2">
-              You are the Secret Santa for:
-            </p>
-            <div className="flex items-center justify-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <User className="w-5 h-5 text-primary" />
+        <p className="text-sm text-santa-deepRed/70 mb-6">
+          Your assignment is encrypted on-chain using FHE. Only you can decrypt it with your permit.
+        </p>
+
+        {error && (
+          <div className="p-3 mb-4 bg-white/50 border border-santa-deepRed/30 rounded-lg flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-santa-deepRed flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-santa-deepRed">{error}</p>
+          </div>
+        )}
+
+        {!encryptedIndex ? (
+          <div className="py-8 text-center">
+            <Loader2 className="w-8 h-8 text-fhenix-purple/40 animate-spin mx-auto mb-4" />
+            <p className="text-sm text-santa-deepRed/60">Loading your encrypted assignment...</p>
+          </div>
+        ) : showTarget && targetAddress ? (
+          <div className="space-y-4">
+            <div className="p-6 bg-fhenix-purple/10 border border-fhenix-purple/30 rounded-lg text-center">
+              <p className="text-sm text-santa-deepRed/70 mb-2">
+                You are the Secret Santa for:
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-fhenix-purple/20 flex items-center justify-center">
+                  <User className="w-5 h-5 text-fhenix-purple" />
+                </div>
+                <span className="font-mono text-lg text-santa-deepRed font-bold">
+                  {truncateAddress(targetAddress)}
+                </span>
               </div>
-              <span className="font-mono text-lg text-base-content font-bold">
-                {truncateAddress(targetAddress)}
-              </span>
             </div>
-          </div>
 
-          <button
-            onClick={() => setShowTarget(false)}
-            className="btn btn-ghost w-full rounded-sm"
-          >
-            <EyeOff className="w-4 h-4 mr-2" />
-            Hide Assignment
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="p-6 bg-base-200 border border-base-300 rounded-sm text-center">
-            <div className="w-16 h-16 rounded-full bg-base-300 flex items-center justify-center mx-auto mb-4">
-              <Gift className="w-8 h-8 text-base-content/40" />
+            <button
+              onClick={() => setShowTarget(false)}
+              className="w-full py-3 text-santa-deepRed/70 hover:text-santa-deepRed flex items-center justify-center gap-2 transition-colors"
+            >
+              <EyeOff className="w-4 h-4" />
+              Hide Assignment
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="p-6 bg-white/30 border border-santa-deepRed/10 rounded-lg text-center">
+              <div className="w-16 h-16 rounded-full bg-fhenix-purple/10 flex items-center justify-center mx-auto mb-4">
+                <Gift className="w-8 h-8 text-fhenix-purple/40" />
+              </div>
+              <p className="text-santa-deepRed/60 font-mono">
+                {"••••••••••••••••"}
+              </p>
+              <p className="text-xs text-santa-deepRed/40 mt-2">
+                Click below to reveal your assignment
+              </p>
             </div>
-            <p className="text-base-content/60 font-mono">
-              {"••••••••••••••••"}
-            </p>
-            <p className="text-xs text-base-content/40 mt-2">
-              Click below to reveal your assignment
-            </p>
+
+            {!hasValidPermit ? (
+              <button
+                onClick={() => setIsPermitModalOpen(true)}
+                className="btn-fhenix w-full h-12 flex items-center justify-center gap-2"
+              >
+                <Key className="w-5 h-5" />
+                Generate Permit First
+              </button>
+            ) : (
+              <button
+                onClick={handleReveal}
+                disabled={isLoading || !isInitialized}
+                className="btn-fhenix w-full h-12 flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Decrypting...
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-5 h-5" />
+                    Reveal My Assignment
+                  </>
+                )}
+              </button>
+            )}
           </div>
+        )}
 
-          {!hasValidPermit ? (
-            <button
-              onClick={() => setIsPermitModalOpen(true)}
-              className="btn btn-fhenix w-full font-bold tracking-wider rounded-sm h-12 font-display uppercase"
-            >
-              <Key className="w-5 h-5 mr-2" />
-              Generate Permit First
-            </button>
-          ) : (
-            <button
-              onClick={handleReveal}
-              disabled={isLoading || !isInitialized}
-              className="btn btn-fhenix w-full font-bold tracking-wider rounded-sm h-12 font-display uppercase"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Decrypting...
-                </>
-              ) : (
-                <>
-                  <Eye className="w-5 h-5 mr-2" />
-                  Reveal My Assignment
-                </>
-              )}
-            </button>
-          )}
-        </div>
-      )}
-
-      <PermitModal isOpen={isPermitModalOpen} onClose={() => setIsPermitModalOpen(false)} />
+        <PermitModal isOpen={isPermitModalOpen} onClose={() => setIsPermitModalOpen(false)} />
+      </div>
     </div>
   );
 };

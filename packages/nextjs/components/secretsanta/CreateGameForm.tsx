@@ -28,86 +28,80 @@ export const CreateGameForm = ({ onSuccess }: CreateGameFormProps) => {
   };
 
   return (
-    <div className="p-6 bg-base-100 border border-base-300 rounded-sm relative overflow-hidden">
-      {/* Corner accents */}
-      <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-primary"></div>
-      <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-primary"></div>
-      <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-primary"></div>
-      <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-primary"></div>
-
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-primary/10 rounded-sm">
-          <Gift className="w-5 h-5 text-primary" />
-        </div>
-        <h3 className="text-lg font-bold font-display uppercase tracking-wide text-base-content">
-          Create Game
-        </h3>
-      </div>
-
-      <p className="text-sm text-base-content/60 mb-4">
-        Start a new Secret Santa game. Share the game ID with friends to let them join!
-      </p>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="text-sm font-pixel text-base-content/60 uppercase tracking-widest mb-2 block">
-            Game Name
-          </label>
-          <input
-            type="text"
-            value={gameName}
-            onChange={(e) => setGameName(e.target.value)}
-            placeholder="e.g., Office Secret Santa 2024"
-            className="input input-bordered w-full bg-base-200 border-base-300 focus:border-primary rounded-sm"
-            disabled={!isConnected || isLoading}
-          />
+    <div className="bg-white p-4 pb-8 rounded-sm shadow-polaroid">
+      <div className="bg-pastel-pink rounded-sm p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <Gift className="w-5 h-5 text-santa-deepRed" />
+          <h3 className="text-lg font-bold font-display text-santa-deepRed">
+            Create Game
+          </h3>
         </div>
 
-        {error && (
-          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-sm flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-500">{error}</p>
-          </div>
-        )}
+        <p className="text-sm text-santa-deepRed/70 mb-4">
+          Start a new Secret Santa game. Share the game ID with friends!
+        </p>
 
-        {isSuccess && (
-          <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-sm">
-            <p className="text-sm text-green-500">
-              Game created successfully! Check your games list below.
-            </p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-sm text-santa-deepRed/80 mb-2 block font-medium">
+              Game Name
+            </label>
+            <input
+              type="text"
+              value={gameName}
+              onChange={(e) => setGameName(e.target.value)}
+              placeholder="e.g., Office Secret Santa 2024"
+              className="input w-full bg-white border border-santa-deepRed/20 focus:border-fhenix-purple rounded-lg text-santa-deepRed placeholder:text-santa-deepRed/40"
+              disabled={!isConnected || isLoading}
+            />
           </div>
-        )}
 
-        <button
-          type="submit"
-          disabled={!isConnected || !isInitialized || !gameName.trim() || isLoading}
-          className="btn btn-fhenix w-full font-bold tracking-wider rounded-sm h-12 font-display uppercase"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin mr-2" />
-              Creating...
-            </>
-          ) : (
-            <>
-              <Plus className="w-5 h-5 mr-2" />
-              Create Game
-            </>
+          {error && (
+            <div className="p-3 bg-pastel-coral/30 border border-pastel-coral rounded-lg flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-santa-deepRed flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-santa-deepRed">{error}</p>
+            </div>
           )}
-        </button>
 
-        {!isConnected && (
-          <p className="text-center text-sm font-pixel text-base-content/40 uppercase tracking-widest">
-            {"// Connect wallet to create a game"}
-          </p>
-        )}
+          {isSuccess && (
+            <div className="p-3 bg-pastel-mint/50 border border-pastel-mint rounded-lg">
+              <p className="text-sm text-santa-deepRed">
+                Game created successfully! Check your games list below.
+              </p>
+            </div>
+          )}
 
-        {isConnected && !isInitialized && (
-          <p className="text-center text-sm font-pixel text-base-content/40 uppercase tracking-widest">
-            {"// Initializing FHE..."}
-          </p>
-        )}
-      </form>
+          <button
+            type="submit"
+            disabled={!isConnected || !isInitialized || !gameName.trim() || isLoading}
+            className="btn-fhenix w-full h-12 flex items-center justify-center gap-2"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Plus className="w-5 h-5" />
+                Create Game
+              </>
+            )}
+          </button>
+
+          {!isConnected && (
+            <p className="text-center text-sm text-santa-deepRed/50">
+              Connect wallet to create a game
+            </p>
+          )}
+
+          {isConnected && !isInitialized && (
+            <p className="text-center text-sm text-santa-deepRed/50">
+              Initializing FHE...
+            </p>
+          )}
+        </form>
+      </div>
     </div>
   );
 };

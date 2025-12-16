@@ -13,16 +13,16 @@ export const GameCard = ({ game, onClick }: GameCardProps) => {
   const { address } = useAccount();
   const isCreator = address?.toLowerCase() === game.creator.toLowerCase();
 
-  const getStateColor = () => {
+  const getStateStyles = () => {
     switch (game.state) {
       case GameState.REGISTRATION:
-        return "text-yellow-500 bg-yellow-500/10 border-yellow-500/30";
+        return "text-santa-deepRed bg-pastel-coral/30 border-pastel-coral";
       case GameState.ACTIVE:
-        return "text-green-500 bg-green-500/10 border-green-500/30";
+        return "text-santa-deepRed bg-pastel-mint/50 border-pastel-mint";
       case GameState.REVEALED:
-        return "text-primary bg-primary/10 border-primary/30";
+        return "text-fhenix-purple bg-fhenix-purple/10 border-fhenix-purple/30";
       default:
-        return "text-base-content/60 bg-base-200 border-base-300";
+        return "text-santa-deepRed/60 bg-santa-deepRed/10 border-santa-deepRed/20";
     }
   };
 
@@ -34,29 +34,23 @@ export const GameCard = ({ game, onClick }: GameCardProps) => {
   return (
     <button
       onClick={onClick}
-      className="w-full p-4 bg-base-100 border border-base-300 rounded-sm hover:border-primary transition-all text-left group relative overflow-hidden"
+      className="w-full p-4 bg-white border border-santa-deepRed/10 rounded-lg hover:border-fhenix-purple/50 hover:shadow-md transition-all text-left group"
     >
-      {/* Corner accents on hover */}
-      <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-primary opacity-0 group-hover:opacity-100 transition-opacity"></div>
-      <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-primary opacity-0 group-hover:opacity-100 transition-opacity"></div>
-      <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-primary opacity-0 group-hover:opacity-100 transition-opacity"></div>
-      <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-primary opacity-0 group-hover:opacity-100 transition-opacity"></div>
-
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
-            <h4 className="font-bold text-base-content truncate">{game.name}</h4>
+            <h4 className="font-bold text-santa-deepRed truncate">{game.name}</h4>
             {isCreator && (
-              <div className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 rounded-sm">
-                <Crown className="w-3 h-3 text-primary" />
-                <span className="text-xs text-primary font-pixel">CREATOR</span>
+              <div className="flex items-center gap-1 px-2 py-0.5 bg-fhenix-purple/10 rounded-lg">
+                <Crown className="w-3 h-3 text-fhenix-purple" />
+                <span className="text-xs text-fhenix-purple font-medium">Creator</span>
               </div>
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 text-sm text-base-content/60">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-santa-deepRed/60">
             <div className="flex items-center gap-1">
-              <span className="font-pixel text-xs">ID:</span>
+              <span className="text-xs text-santa-deepRed/50">ID:</span>
               <span className="font-mono">{game.gameId.toString()}</span>
             </div>
             <div className="flex items-center gap-1">
@@ -71,10 +65,10 @@ export const GameCard = ({ game, onClick }: GameCardProps) => {
         </div>
 
         <div className="flex items-center gap-3 ml-4">
-          <div className={`px-2 py-1 text-xs font-pixel uppercase rounded-sm border ${getStateColor()}`}>
+          <div className={`px-2 py-1 text-xs font-medium rounded-lg border ${getStateStyles()}`}>
             {gameStateLabels[game.state]}
           </div>
-          <ChevronRight className="w-5 h-5 text-base-content/40 group-hover:text-primary transition-colors" />
+          <ChevronRight className="w-5 h-5 text-santa-deepRed/30 group-hover:text-fhenix-purple transition-colors" />
         </div>
       </div>
     </button>

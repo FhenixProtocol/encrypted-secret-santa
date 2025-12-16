@@ -48,29 +48,23 @@ export const PermitModal = ({ isOpen, onClose }: PermitModalProps) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="relative bg-base-100 border border-base-300 rounded-sm shadow-2xl w-full max-w-md mx-4 overflow-hidden">
-        {/* Corner accents */}
-        <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-primary"></div>
-        <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-primary"></div>
-        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-primary"></div>
-        <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-primary"></div>
-
+      <div className="relative bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-base-300">
+        <div className="flex items-center justify-between p-4 border-b border-santa-deepRed/10 bg-fhenix-purple/10">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-sm">
-              <Key className="w-5 h-5 text-primary" />
+            <div className="p-2 bg-fhenix-purple/20 rounded-lg">
+              <Key className="w-5 h-5 text-fhenix-purple" />
             </div>
-            <h2 className="text-lg font-bold text-base-content font-display uppercase tracking-wide">
+            <h2 className="text-lg font-bold text-santa-deepRed font-display">
               Manage Permit
             </h2>
           </div>
-          <button onClick={onClose} className="btn btn-ghost btn-sm btn-square">
+          <button onClick={onClose} className="p-2 text-santa-deepRed/50 hover:text-santa-deepRed rounded-lg hover:bg-santa-deepRed/10 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -78,16 +72,16 @@ export const PermitModal = ({ isOpen, onClose }: PermitModalProps) => {
         {/* Content */}
         <div className="p-6 space-y-6">
           {/* Info Section */}
-          <div className="p-4 bg-base-200 border border-base-300 rounded-sm">
+          <div className="p-4 bg-pastel-cream rounded-lg">
             <div className="flex items-start gap-3">
-              <Shield className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <Shield className="w-5 h-5 text-fhenix-purple flex-shrink-0 mt-0.5" />
               <div className="space-y-2">
-                <p className="text-sm text-base-content">
+                <p className="text-sm text-santa-deepRed">
                   A permit is required to reveal your encrypted Secret Santa
                   assignment. Click &quot;Generate&quot; and sign the message in
                   your wallet to create one.
                 </p>
-                <p className="text-xs text-base-content/60">
+                <p className="text-xs text-santa-deepRed/60">
                   Permits are stored locally and are chain-specific.
                 </p>
               </div>
@@ -95,56 +89,56 @@ export const PermitModal = ({ isOpen, onClose }: PermitModalProps) => {
           </div>
 
           {/* Status Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-base-200 border border-base-300 rounded-sm">
-              <span className="text-sm font-pixel text-base-content/60 uppercase">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-pastel-mint/30 rounded-lg">
+              <span className="text-sm text-santa-deepRed/70">
                 Network
               </span>
-              <span className="text-sm font-mono text-base-content">
+              <span className="text-sm font-mono text-santa-deepRed">
                 {chainName}
               </span>
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-base-200 border border-base-300 rounded-sm">
-              <span className="text-sm font-pixel text-base-content/60 uppercase">
+            <div className="flex items-center justify-between p-3 bg-pastel-mint/30 rounded-lg">
+              <span className="text-sm text-santa-deepRed/70">
                 COFHE Status
               </span>
               <div className="flex items-center gap-2">
                 {isInitializing ? (
                   <>
-                    <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                    <span className="text-sm text-primary">
+                    <Loader2 className="w-4 h-4 text-fhenix-purple animate-spin" />
+                    <span className="text-sm text-santa-deepRed">
                       Initializing...
                     </span>
                   </>
                 ) : isInitialized ? (
                   <>
-                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    <span className="text-sm text-green-500">Ready</span>
+                    <CheckCircle2 className="w-4 h-4 text-fhenix-purple" />
+                    <span className="text-sm text-santa-deepRed">Ready</span>
                   </>
                 ) : (
                   <>
-                    <AlertCircle className="w-4 h-4 text-yellow-500" />
-                    <span className="text-sm text-yellow-500">Not Ready</span>
+                    <AlertCircle className="w-4 h-4 text-pastel-coral" />
+                    <span className="text-sm text-santa-deepRed">Not Ready</span>
                   </>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-base-200 border border-base-300 rounded-sm">
-              <span className="text-sm font-pixel text-base-content/60 uppercase">
+            <div className="flex items-center justify-between p-3 bg-pastel-mint/30 rounded-lg">
+              <span className="text-sm text-santa-deepRed/70">
                 Permit Status
               </span>
               <div className="flex items-center gap-2">
                 {hasValidPermit ? (
                   <>
-                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    <span className="text-sm text-green-500">Active</span>
+                    <CheckCircle2 className="w-4 h-4 text-fhenix-purple" />
+                    <span className="text-sm text-santa-deepRed">Active</span>
                   </>
                 ) : (
                   <>
-                    <AlertCircle className="w-4 h-4 text-yellow-500" />
-                    <span className="text-sm text-yellow-500">
+                    <AlertCircle className="w-4 h-4 text-pastel-coral" />
+                    <span className="text-sm text-santa-deepRed">
                       Not Generated
                     </span>
                   </>
@@ -155,10 +149,10 @@ export const PermitModal = ({ isOpen, onClose }: PermitModalProps) => {
 
           {/* Error Display */}
           {(cofheError || permitError) && (
-            <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-sm">
+            <div className="p-4 bg-pastel-coral/30 border border-pastel-coral rounded-lg">
               <div className="flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-red-500">
+                <AlertCircle className="w-4 h-4 text-santa-deepRed flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-santa-deepRed">
                   {cofheError?.message || permitError}
                 </p>
               </div>
@@ -167,21 +161,21 @@ export const PermitModal = ({ isOpen, onClose }: PermitModalProps) => {
         </div>
 
         {/* Actions */}
-        <div className="p-4 border-t border-base-300 space-y-3">
+        <div className="p-4 border-t border-santa-deepRed/10 space-y-3 bg-pastel-cream/30">
           {!hasValidPermit ? (
             <button
               onClick={handleGeneratePermit}
               disabled={!isInitialized || isGeneratingPermit || !address}
-              className="btn btn-fhenix w-full font-bold tracking-wider rounded-sm h-12 font-display uppercase"
+              className="btn-fhenix w-full h-12 flex items-center justify-center gap-2"
             >
               {isGeneratingPermit ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                   Generating...
                 </>
               ) : (
                 <>
-                  <Key className="w-5 h-5 mr-2" />
+                  <Key className="w-5 h-5" />
                   Generate Permit
                 </>
               )}
@@ -190,24 +184,24 @@ export const PermitModal = ({ isOpen, onClose }: PermitModalProps) => {
             <div className="flex gap-3">
               <button
                 onClick={handleRevokePermit}
-                className="btn btn-outline btn-error flex-1 font-bold tracking-wider rounded-sm h-12 font-display uppercase"
+                className="flex-1 h-12 flex items-center justify-center gap-2 bg-pastel-coral/30 hover:bg-pastel-coral/50 border border-pastel-coral text-santa-deepRed rounded-lg font-semibold transition-all"
               >
-                <Trash2 className="w-4 h-4 mr-2" />
+                <Trash2 className="w-4 h-4" />
                 Revoke
               </button>
               <button
                 onClick={handleGeneratePermit}
                 disabled={isGeneratingPermit}
-                className="btn btn-fhenix flex-1 font-bold tracking-wider rounded-sm h-12 font-display uppercase"
+                className="btn-fhenix flex-1 h-12 flex items-center justify-center gap-2"
               >
                 {isGeneratingPermit ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     Regenerating...
                   </>
                 ) : (
                   <>
-                    <Key className="w-4 h-4 mr-2" />
+                    <Key className="w-4 h-4" />
                     Regenerate
                   </>
                 )}
@@ -216,8 +210,8 @@ export const PermitModal = ({ isOpen, onClose }: PermitModalProps) => {
           )}
 
           {!address && (
-            <p className="text-center text-sm font-pixel text-base-content/40 uppercase tracking-widest">
-              {"// Connect wallet to generate permit"}
+            <p className="text-center text-sm text-santa-deepRed/50">
+              Connect wallet to generate permit
             </p>
           )}
         </div>

@@ -11,82 +11,143 @@
   font-style: normal;
 }
 
-@font-face {
-  font-family: 'Visitor';
-  src: url('/fonts/visitor1.ttf') format('truetype');
-  font-weight: 400;
-  font-display: swap;
-  font-style: normal;
-}
-
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --santa-red: #E63946;
+  --santa-dark-red: #C41E3A;
+  --santa-deep-red: #9B1B30;
+  --fhenix-purple: #8B5CF6;
+  --fhenix-blue: #3B82F6;
+  --pastel-pink: #FFB4B8;
+  --pastel-mint: #B8E4D8;
+  --pastel-coral: #FFA090;
+  --pastel-cream: #FFF8E7;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: 'ClashDisplay', sans-serif; /* Default to ClashDisplay for a branded feel */
+  color: white;
+  background: linear-gradient(135deg, var(--santa-red) 0%, var(--santa-dark-red) 100%);
+  font-family: 'ClashDisplay', sans-serif;
+  min-height: 100vh;
 }
 
-/* Theme-based Logo Visibility */
-/* Default state: hide both */
-.theme-logo-light, .theme-logo-dark {
-  display: none !important;
-}
-
-/* Show correct logo based on data-theme attribute */
-[data-theme='fhenixlight'] .theme-logo-light {
-  display: block !important;
-}
-
-[data-theme='fhenixdark'] .theme-logo-dark {
-  display: block !important;
-}
-
-/* Custom Button Styles for Fhenix Branding */
+/* Custom Button Styles */
 @layer components {
+  /* Fhenix-styled primary button with encryption shimmer */
   .btn-fhenix {
-    @apply transition-colors duration-200 border-none;
-  }
-
-  [data-theme='fhenixlight'] .btn-fhenix {
-    background-color: #122531 !important;
+    @apply transition-all duration-200 font-semibold rounded-lg px-6 py-2 relative overflow-hidden;
+    background: linear-gradient(135deg, var(--fhenix-purple) 0%, var(--fhenix-blue) 100%) !important;
     color: white !important;
   }
-  
-  [data-theme='fhenixlight'] .btn-fhenix:hover {
-    background-color: #0d1b24 !important; /* Slightly darker */
+
+  .btn-fhenix::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s ease;
   }
 
-  [data-theme='fhenixdark'] .btn-fhenix {
-    background-color: #00E5FF !important; /* Primary Cyan */
-    color: #122531 !important; /* Dark Text */
-  }
-  
-  [data-theme='fhenixdark'] .btn-fhenix:hover {
-    background-color: #00b8cc !important; /* Slightly darker cyan */
+  .btn-fhenix:hover::before {
+    left: 100%;
   }
 
-  /* Theme-aware text color */
-  .text-fhenix-accent {
-    @apply transition-colors duration-200;
+  .btn-fhenix:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
   }
 
-  [data-theme='fhenixlight'] .text-fhenix-accent {
-    color: #122531 !important;
+  .btn-fhenix:disabled {
+    opacity: 0.6;
+    transform: none;
+    box-shadow: none;
   }
 
-  [data-theme='fhenixdark'] .text-fhenix-accent {
-    color: #00E5FF !important;
+  .btn-fhenix:disabled::before {
+    display: none;
+  }
+
+  /* Secondary button with pastel */
+  .btn-santa {
+    @apply transition-all duration-200 font-semibold rounded-lg px-6 py-2;
+    background-color: white !important;
+    color: var(--santa-deep-red) !important;
+  }
+
+  .btn-santa:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 255, 255, 0.3);
+  }
+
+  .btn-santa:disabled {
+    opacity: 0.6;
+    transform: none;
+  }
+
+  .btn-santa-secondary {
+    @apply transition-all duration-200 font-semibold rounded-lg px-6 py-2;
+    background-color: var(--pastel-mint) !important;
+    color: var(--santa-deep-red) !important;
+  }
+
+  .btn-santa-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(184, 228, 216, 0.3);
+  }
+
+  /* Polaroid card styling */
+  .polaroid-card {
+    @apply bg-white p-3 pb-10 rounded-sm transition-all duration-300;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+
+  .polaroid-card:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Card inner content with pastel backgrounds */
+  .polaroid-content {
+    @apply rounded-sm p-4;
+  }
+
+  .polaroid-content-pink {
+    @apply polaroid-content;
+    background-color: var(--pastel-pink);
+  }
+
+  .polaroid-content-mint {
+    @apply polaroid-content;
+    background-color: var(--pastel-mint);
+  }
+
+  .polaroid-content-coral {
+    @apply polaroid-content;
+    background-color: var(--pastel-coral);
+  }
+
+  .polaroid-content-cream {
+    @apply polaroid-content;
+    background-color: var(--pastel-cream);
+  }
+
+  /* Encryption-themed elements */
+  .encrypted-badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%);
+    color: var(--fhenix-purple);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+  }
+
+  .encrypted-glow {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), 0 0 40px rgba(139, 92, 246, 0.1);
+  }
+
+  /* Cipher text animation */
+  .cipher-reveal {
+    @apply font-mono;
+    transition: all 0.3s ease;
   }
 }
 
@@ -97,8 +158,65 @@ body {
     -webkit-appearance: none;
     margin: 0;
   }
-  
+
   .no-spinners {
     -moz-appearance: textfield;
   }
+
+  /* Encryption scan line effect */
+  .scan-line {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .scan-line::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--fhenix-purple), transparent);
+    animation: scan 2s linear infinite;
+  }
+
+  @keyframes scan {
+    0% { top: 0; opacity: 0; }
+    50% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+  }
+}
+
+/* Custom scrollbar with encryption theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--santa-dark-red);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--fhenix-purple) 0%, var(--fhenix-blue) 100%);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #9D6FFF 0%, #5B9BFF 100%);
+}
+
+/* Encryption particle animation */
+@keyframes cipher-float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(-20px) rotate(180deg);
+    opacity: 0.6;
+  }
+}
+
+.cipher-particle {
+  animation: cipher-float 4s ease-in-out infinite;
 }

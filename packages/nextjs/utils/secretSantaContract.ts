@@ -1,6 +1,6 @@
 // Secret Santa Contract - deployed on Base Sepolia
 export const CONTRACT_ADDRESS =
-  "0xa437DE8f068fBCA3dF82a748ADa7A41bBdd72A0e" as const;
+  "0xb03603d2fcCd98d1aB0Dc17A5916E1cfe3E2082A" as const;
 
 // Game states
 export enum GameState {

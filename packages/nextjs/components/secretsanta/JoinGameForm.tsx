@@ -37,87 +37,81 @@ export const JoinGameForm = ({ onSuccess }: JoinGameFormProps) => {
   };
 
   return (
-    <div className="p-6 bg-base-100 border border-base-300 rounded-sm relative overflow-hidden">
-      {/* Corner accents */}
-      <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-secondary"></div>
-      <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-secondary"></div>
-      <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-secondary"></div>
-      <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-secondary"></div>
-
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-secondary/10 rounded-sm">
-          <UserPlus className="w-5 h-5 text-secondary" />
-        </div>
-        <h3 className="text-lg font-bold font-display uppercase tracking-wide text-base-content">
-          Join Game
-        </h3>
-      </div>
-
-      <p className="text-sm text-base-content/60 mb-4">
-        Enter the game ID shared by the game creator to join an existing game.
-      </p>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="text-sm font-pixel text-base-content/60 uppercase tracking-widest mb-2 block">
-            Game ID
-          </label>
-          <input
-            type="number"
-            value={gameIdInput}
-            onChange={(e) => setGameIdInput(e.target.value)}
-            placeholder="e.g., 0"
-            min="0"
-            className="input input-bordered w-full bg-base-200 border-base-300 focus:border-secondary rounded-sm"
-            disabled={!isConnected || isLoading}
-          />
+    <div className="bg-white p-4 pb-8 rounded-sm shadow-polaroid">
+      <div className="bg-pastel-mint rounded-sm p-5">
+        <div className="flex items-center justify-end gap-3 mb-4">
+          <h3 className="text-lg font-bold font-display text-santa-deepRed">
+            Join Game
+          </h3>
+          <UserPlus className="w-5 h-5 text-santa-deepRed" />
         </div>
 
-        {error && (
-          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-sm flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-500">{error}</p>
-          </div>
-        )}
+        <p className="text-sm text-santa-deepRed/70 mb-4">
+          Enter the game ID shared by the game creator to join.
+        </p>
 
-        {isSuccess && (
-          <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-sm">
-            <p className="text-sm text-green-500">
-              Successfully joined the game!
-            </p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-sm text-santa-deepRed/80 mb-2 block font-medium">
+              Game ID
+            </label>
+            <input
+              type="number"
+              value={gameIdInput}
+              onChange={(e) => setGameIdInput(e.target.value)}
+              placeholder="e.g., 0"
+              min="0"
+              className="input w-full bg-white border border-santa-deepRed/20 focus:border-fhenix-purple rounded-lg text-santa-deepRed placeholder:text-santa-deepRed/40"
+              disabled={!isConnected || isLoading}
+            />
           </div>
-        )}
 
-        <button
-          type="submit"
-          disabled={!isConnected || !isInitialized || !isValidGameId() || isLoading}
-          className="btn btn-secondary w-full font-bold tracking-wider rounded-sm h-12 font-display uppercase"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin mr-2" />
-              Joining...
-            </>
-          ) : (
-            <>
-              <UserPlus className="w-5 h-5 mr-2" />
-              Join Game
-            </>
+          {error && (
+            <div className="p-3 bg-pastel-coral/30 border border-pastel-coral rounded-lg flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-santa-deepRed flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-santa-deepRed">{error}</p>
+            </div>
           )}
-        </button>
 
-        {!isConnected && (
-          <p className="text-center text-sm font-pixel text-base-content/40 uppercase tracking-widest">
-            {"// Connect wallet to join a game"}
-          </p>
-        )}
+          {isSuccess && (
+            <div className="p-3 bg-pastel-pink/50 border border-pastel-pink rounded-lg">
+              <p className="text-sm text-santa-deepRed">
+                Successfully joined the game!
+              </p>
+            </div>
+          )}
 
-        {isConnected && !isInitialized && (
-          <p className="text-center text-sm font-pixel text-base-content/40 uppercase tracking-widest">
-            {"// Initializing FHE..."}
-          </p>
-        )}
-      </form>
+          <button
+            type="submit"
+            disabled={!isConnected || !isInitialized || !isValidGameId() || isLoading}
+            className="btn-santa w-full h-12 flex items-center justify-center gap-2"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Joining...
+              </>
+            ) : (
+              <>
+                <UserPlus className="w-5 h-5" />
+                Join Game
+              </>
+            )}
+          </button>
+
+          {!isConnected && (
+            <p className="text-center text-sm text-santa-deepRed/50">
+              Connect wallet to join a game
+            </p>
+          )}
+
+          {isConnected && !isInitialized && (
+            <p className="text-center text-sm text-santa-deepRed/50">
+              Initializing FHE...
+            </p>
+          )}
+        </form>
+      </div>
     </div>
   );
 };

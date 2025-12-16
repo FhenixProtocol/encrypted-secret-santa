@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, RefreshCw, Loader2, Copy, CheckCircle2, Share2 } from "lucide-react";
+import { ArrowLeft, RefreshCw, Loader2, Copy, CheckCircle2, Share2, Lock } from "lucide-react";
 import { useGameInfo, GameState, gameStateLabels } from "@/hooks/useSecretSanta";
 import { useIsRegistered } from "@/hooks/useSecretSanta";
 import { ParticipantsList } from "./ParticipantsList";
@@ -33,17 +33,17 @@ export const GameDetails = ({ gameId, onBack }: GameDetailsProps) => {
 
   const isCreator = address?.toLowerCase() === gameInfo?.creator.toLowerCase();
 
-  const getStateColor = () => {
-    if (!gameInfo) return "text-base-content/60";
+  const getStateStyles = () => {
+    if (!gameInfo) return "text-santa-deepRed/60 bg-santa-deepRed/10";
     switch (gameInfo.state) {
       case GameState.REGISTRATION:
-        return "text-yellow-500";
+        return "text-santa-deepRed bg-pastel-coral/30";
       case GameState.ACTIVE:
-        return "text-green-500";
+        return "text-santa-deepRed bg-pastel-mint/50";
       case GameState.REVEALED:
-        return "text-primary";
+        return "text-fhenix-purple bg-fhenix-purple/10";
       default:
-        return "text-base-content/60";
+        return "text-santa-deepRed/60 bg-santa-deepRed/10";
     }
   };
 
@@ -56,8 +56,8 @@ export const GameDetails = ({ gameId, onBack }: GameDetailsProps) => {
   if (isLoading && !gameInfo) {
     return (
       <div className="py-20 text-center">
-        <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-4" />
-        <p className="text-base-content/60">Loading game details...</p>
+        <Loader2 className="w-8 h-8 text-fhenix-purple animate-spin mx-auto mb-4" />
+        <p className="text-white/60">Loading game details...</p>
       </div>
     );
   }
@@ -65,9 +65,9 @@ export const GameDetails = ({ gameId, onBack }: GameDetailsProps) => {
   if (error || !gameInfo) {
     return (
       <div className="py-20 text-center">
-        <p className="text-red-500 mb-4">{error || "Game not found"}</p>
-        <button onClick={onBack} className="btn btn-ghost">
-          <ArrowLeft className="w-4 h-4 mr-2" />
+        <p className="text-pastel-coral mb-4">{error || "Game not found"}</p>
+        <button onClick={onBack} className="text-white/70 hover:text-white flex items-center justify-center gap-2 mx-auto">
+          <ArrowLeft className="w-4 h-4" />
           Back to Games
         </button>
       </div>
@@ -80,84 +80,80 @@ export const GameDetails = ({ gameId, onBack }: GameDetailsProps) => {
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="btn btn-ghost btn-sm rounded-sm"
+          className="text-white/70 hover:text-white flex items-center gap-2 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <ArrowLeft className="w-4 h-4" />
           Back
         </button>
 
         <button
           onClick={() => fetchGameInfo()}
           disabled={isLoading}
-          className="btn btn-ghost btn-sm rounded-sm"
+          className="text-white/70 hover:text-white p-2 transition-colors"
           title="Refresh"
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
         </button>
       </div>
 
-      {/* Game Info Card */}
-      <div className="p-6 bg-base-100 border border-base-300 rounded-sm relative overflow-hidden">
-        {/* Corner accents */}
-        <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-primary"></div>
-        <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-primary"></div>
-        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-primary"></div>
-        <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-primary"></div>
-
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h2 className="text-2xl font-bold font-display text-base-content mb-2">
-              {gameInfo.name}
-            </h2>
-            <div className="flex items-center gap-2">
-              <span className="font-pixel text-xs text-base-content/60 uppercase">Status:</span>
-              <span className={`font-pixel text-sm uppercase ${getStateColor()}`}>
-                {gameStateLabels[gameInfo.state]}
-              </span>
+      {/* Game Info Card - Polaroid Style with slight rotation */}
+      <div className="bg-white p-4 pb-8 rounded-sm shadow-polaroid transform rotate-1 hover:rotate-0 transition-transform duration-300">
+        <div className="bg-pastel-cream rounded-sm p-5">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h2 className="text-2xl font-bold font-display text-santa-deepRed mb-2">
+                {gameInfo.name}
+              </h2>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-santa-deepRed/60">Status:</span>
+                <span className={`text-sm font-medium px-2 py-0.5 rounded ${getStateStyles()}`}>
+                  {gameStateLabels[gameInfo.state]}
+                </span>
+              </div>
             </div>
+
+            <button
+              onClick={copyGameId}
+              className="flex items-center gap-2 px-3 py-2 bg-white/50 border border-santa-deepRed/20 rounded-lg hover:border-fhenix-purple/50 transition-all"
+              title="Copy Game ID"
+            >
+              <span className="text-xs text-santa-deepRed/60">ID:</span>
+              <span className="font-mono text-santa-deepRed">{gameId.toString()}</span>
+              {copied ? (
+                <CheckCircle2 className="w-4 h-4 text-fhenix-purple" />
+              ) : (
+                <Copy className="w-4 h-4 text-santa-deepRed/40" />
+              )}
+            </button>
           </div>
 
-          <button
-            onClick={copyGameId}
-            className="flex items-center gap-2 px-3 py-2 bg-base-200 border border-base-300 rounded-sm hover:border-primary transition-all"
-            title="Copy Game ID"
-          >
-            <span className="font-pixel text-xs text-base-content/60">ID:</span>
-            <span className="font-mono text-base-content">{gameId.toString()}</span>
-            {copied ? (
-              <CheckCircle2 className="w-4 h-4 text-green-500" />
-            ) : (
-              <Copy className="w-4 h-4 text-base-content/50" />
-            )}
-          </button>
-        </div>
-
-        {/* Share banner for registration phase */}
-        {gameInfo.state === GameState.REGISTRATION && (
-          <div className="p-3 bg-primary/10 border border-primary/30 rounded-sm mb-4">
-            <div className="flex items-center gap-2">
-              <Share2 className="w-4 h-4 text-primary" />
-              <span className="text-sm text-primary">
-                Share Game ID <strong>{gameId.toString()}</strong> with friends to let them join!
-              </span>
+          {/* Share banner for registration phase */}
+          {gameInfo.state === GameState.REGISTRATION && (
+            <div className="p-3 bg-fhenix-purple/10 border border-fhenix-purple/30 rounded-lg mb-4">
+              <div className="flex items-center gap-2">
+                <Share2 className="w-4 h-4 text-fhenix-purple" />
+                <span className="text-sm text-santa-deepRed">
+                  Share Game ID <strong>{gameId.toString()}</strong> with friends to let them join!
+                </span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="p-3 bg-base-200 rounded-sm">
-            <p className="text-xs font-pixel text-base-content/60 uppercase mb-1">Players</p>
-            <p className="text-xl font-bold text-base-content">{gameInfo.playerCount.toString()}</p>
-          </div>
-          <div className="p-3 bg-base-200 rounded-sm">
-            <p className="text-xs font-pixel text-base-content/60 uppercase mb-1">Min. Required</p>
-            <p className="text-xl font-bold text-base-content">3</p>
-          </div>
-          <div className="p-3 bg-base-200 rounded-sm col-span-2">
-            <p className="text-xs font-pixel text-base-content/60 uppercase mb-1">Creator</p>
-            <p className="text-sm font-mono text-base-content truncate">
-              {gameInfo.creator.slice(0, 10)}...{gameInfo.creator.slice(-8)}
-            </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="p-3 bg-white/50 rounded-lg">
+              <p className="text-xs text-santa-deepRed/60 mb-1">Players</p>
+              <p className="text-xl font-bold text-santa-deepRed">{gameInfo.playerCount.toString()}</p>
+            </div>
+            <div className="p-3 bg-white/50 rounded-lg">
+              <p className="text-xs text-santa-deepRed/60 mb-1">Min. Required</p>
+              <p className="text-xl font-bold text-santa-deepRed">3</p>
+            </div>
+            <div className="p-3 bg-white/50 rounded-lg col-span-2">
+              <p className="text-xs text-santa-deepRed/60 mb-1">Creator</p>
+              <p className="text-sm font-mono text-santa-deepRed truncate">
+                {gameInfo.creator.slice(0, 10)}...{gameInfo.creator.slice(-8)}
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -190,21 +186,29 @@ export const GameDetails = ({ gameId, onBack }: GameDetailsProps) => {
           {isRegistered && gameInfo.state >= GameState.ACTIVE ? (
             <TargetReveal gameId={gameId} refreshTrigger={refreshTrigger} />
           ) : gameInfo.state === GameState.REGISTRATION ? (
-            <div className="p-6 bg-base-100 border border-base-300 rounded-sm text-center">
-              <p className="text-base-content/60 mb-2">
-                Assignments will be available once the game is finalized.
-              </p>
-              <p className="text-sm text-base-content/40">
-                {isCreator
-                  ? "Finalize the game when everyone has joined."
-                  : "Wait for the creator to finalize the game."}
-              </p>
+            <div className="bg-white p-4 pb-8 rounded-sm shadow-polaroid transform rotate-2 hover:rotate-0 transition-transform duration-300">
+              <div className="bg-pastel-cream rounded-sm p-5 text-center">
+                <div className="encrypted-badge mx-auto mb-4 w-fit">
+                  <Lock className="w-3 h-3" />
+                  <span>Pending Encryption</span>
+                </div>
+                <p className="text-santa-deepRed/70 mb-2">
+                  Assignments will be available once the game is finalized.
+                </p>
+                <p className="text-sm text-santa-deepRed/50">
+                  {isCreator
+                    ? "Finalize the game when everyone has joined."
+                    : "Wait for the creator to finalize the game."}
+                </p>
+              </div>
             </div>
           ) : !isRegistered ? (
-            <div className="p-6 bg-base-100 border border-base-300 rounded-sm text-center">
-              <p className="text-base-content/60">
-                You are not a participant in this game.
-              </p>
+            <div className="bg-white p-4 pb-8 rounded-sm shadow-polaroid transform rotate-2 hover:rotate-0 transition-transform duration-300">
+              <div className="bg-pastel-cream rounded-sm p-5 text-center">
+                <p className="text-santa-deepRed/70">
+                  You are not a participant in this game.
+                </p>
+              </div>
             </div>
           ) : null}
         </div>

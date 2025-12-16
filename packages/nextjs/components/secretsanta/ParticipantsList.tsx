@@ -40,63 +40,65 @@ export const ParticipantsList = ({ gameId, creatorAddress }: ParticipantsListPro
   };
 
   return (
-    <div className="p-4 bg-base-200 border border-base-300 rounded-sm">
-      <div className="flex items-center gap-2 mb-4">
-        <Users className="w-4 h-4 text-primary" />
-        <h4 className="text-sm font-bold font-display uppercase tracking-wide text-base-content">
-          Participants ({participants.length})
-        </h4>
-      </div>
-
-      {isLoading ? (
-        <div className="py-4 text-center">
-          <Loader2 className="w-5 h-5 text-primary animate-spin mx-auto" />
+    <div className="bg-white p-4 pb-8 rounded-sm shadow-polaroid transform -rotate-1 hover:rotate-0 transition-transform duration-300">
+      <div className="bg-pastel-mint rounded-sm p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Users className="w-4 h-4 text-santa-deepRed" />
+          <h4 className="text-sm font-bold font-display text-santa-deepRed">
+            Participants ({participants.length})
+          </h4>
         </div>
-      ) : error ? (
-        <p className="text-sm text-red-500">{error}</p>
-      ) : participants.length === 0 ? (
-        <p className="text-sm text-base-content/60">No participants yet</p>
-      ) : (
-        <div className="space-y-2">
-          {shuffledParticipants.map((participant) => {
-            const isCreator = participant.toLowerCase() === creatorAddress.toLowerCase();
-            const isCurrentUser = participant.toLowerCase() === currentUser?.toLowerCase();
 
-            return (
-              <div
-                key={participant}
-                className={`flex items-center justify-between p-2 rounded-sm ${
-                  isCurrentUser ? "bg-primary/10 border border-primary/30" : "bg-base-100"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-base-300 flex items-center justify-center">
-                    <User className="w-3 h-3 text-base-content/50" />
+        {isLoading ? (
+          <div className="py-4 text-center">
+            <Loader2 className="w-5 h-5 text-fhenix-purple/40 animate-spin mx-auto" />
+          </div>
+        ) : error ? (
+          <p className="text-sm text-pastel-coral">{error}</p>
+        ) : participants.length === 0 ? (
+          <p className="text-sm text-santa-deepRed/60">No participants yet</p>
+        ) : (
+          <div className="space-y-2">
+            {shuffledParticipants.map((participant) => {
+              const isCreator = participant.toLowerCase() === creatorAddress.toLowerCase();
+              const isCurrentUser = participant.toLowerCase() === currentUser?.toLowerCase();
+
+              return (
+                <div
+                  key={participant}
+                  className={`flex items-center justify-between p-2 rounded-lg ${
+                    isCurrentUser ? "bg-fhenix-purple/10 border border-fhenix-purple/30" : "bg-white/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-santa-deepRed/10 flex items-center justify-center">
+                      <User className="w-3 h-3 text-santa-deepRed" />
+                    </div>
+                    <span className="font-mono text-sm text-santa-deepRed">
+                      {truncateAddress(participant)}
+                    </span>
                   </div>
-                  <span className="font-mono text-sm text-base-content">
-                    {truncateAddress(participant)}
-                  </span>
-                </div>
 
-                <div className="flex items-center gap-2">
-                  {isCreator && (
-                    <div className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 rounded-sm">
-                      <Crown className="w-3 h-3 text-primary" />
-                      <span className="text-xs text-primary font-pixel">CREATOR</span>
-                    </div>
-                  )}
-                  {isCurrentUser && (
-                    <div className="flex items-center gap-1 px-2 py-0.5 bg-secondary/10 rounded-sm">
-                      <User className="w-3 h-3 text-secondary" />
-                      <span className="text-xs text-secondary font-pixel">YOU</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {isCreator && (
+                      <div className="flex items-center gap-1 px-2 py-0.5 bg-pastel-coral/30 rounded-lg">
+                        <Crown className="w-3 h-3 text-santa-deepRed" />
+                        <span className="text-xs text-santa-deepRed font-medium">Creator</span>
+                      </div>
+                    )}
+                    {isCurrentUser && (
+                      <div className="flex items-center gap-1 px-2 py-0.5 bg-fhenix-purple/20 rounded-lg">
+                        <User className="w-3 h-3 text-fhenix-purple" />
+                        <span className="text-xs text-fhenix-purple font-medium">You</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
