@@ -8,13 +8,13 @@ import {
   walletConnectWallet,
   injectedWallet,
 } from "@rainbow-me/rainbowkit/wallets";
-import { baseSepolia } from "wagmi/chains";
+import { arbitrumSepolia } from "wagmi/chains";
 
 export const config = getDefaultConfig({
   appName: "Secret Santa",
   projectId:
     process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "demo-project-id",
-  chains: [baseSepolia],
+  chains: [arbitrumSepolia],
   ssr: true,
   wallets: [
     {

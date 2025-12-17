@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ArrowLeft, RefreshCw, Loader2, Copy, CheckCircle2, Share2, Lock } from "lucide-react";
-import { useGameInfo, GameState, gameStateLabels } from "@/hooks/useSecretSanta";
+import { useGameInfo, GameState, gameStateLabels, usePlayerName } from "@/hooks/useSecretSanta";
 import { useIsRegistered } from "@/hooks/useSecretSanta";
 import { ParticipantsList } from "./ParticipantsList";
 import { TargetReveal } from "./TargetReveal";
@@ -19,12 +19,22 @@ export const GameDetails = ({ gameId, onBack }: GameDetailsProps) => {
   const { address } = useAccount();
   const { gameInfo, isLoading, error, fetchGameInfo } = useGameInfo(gameId);
   const { isRegistered, checkRegistration } = useIsRegistered(gameId);
+  const { name: creatorName, fetchPlayerName: fetchCreatorName } = usePlayerName(
+    gameId,
+    gameInfo?.creator ?? null
+  );
   const [copied, setCopied] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     fetchGameInfo();
   }, [fetchGameInfo]);
+
+  useEffect(() => {
+    if (gameInfo?.creator) {
+      fetchCreatorName();
+    }
+  }, [gameInfo?.creator, fetchCreatorName]);
 
   useEffect(() => {
     if (gameId !== null) {
@@ -158,9 +168,18 @@ export const GameDetails = ({ gameId, onBack }: GameDetailsProps) => {
             </div>
             <div className="p-3 bg-white/50 rounded-lg col-span-2">
               <p className="text-xs text-santa-deepRed/60 mb-1">Creator</p>
-              <p className="text-sm font-mono text-santa-deepRed truncate">
-                {gameInfo.creator.slice(0, 10)}...{gameInfo.creator.slice(-8)}
-              </p>
+              {creatorName ? (
+                <div>
+                  <p className="text-sm font-medium text-santa-deepRed">{creatorName}</p>
+                  <p className="text-xs font-mono text-santa-deepRed/50 truncate">
+                    {gameInfo.creator.slice(0, 10)}...{gameInfo.creator.slice(-8)}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm font-mono text-santa-deepRed truncate">
+                  {gameInfo.creator.slice(0, 10)}...{gameInfo.creator.slice(-8)}
+                </p>
+              )}
             </div>
           </div>
         </div>

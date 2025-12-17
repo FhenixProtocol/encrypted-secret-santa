@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Eye, EyeOff, Loader2, AlertCircle, Key, Gift, User } from "lucide-react";
-import { useMyTarget, useParticipants } from "@/hooks/useSecretSanta";
+import { useMyTarget, useParticipantsWithNames, ParticipantWithName } from "@/hooks/useSecretSanta";
 import { usePermit } from "@/hooks/usePermit";
 import { useCofheStore } from "@/services/store/cofheStore";
 import { PermitModal } from "@/components/PermitModal";
@@ -23,15 +23,15 @@ export const TargetReveal = ({ gameId, refreshTrigger }: TargetRevealProps) => {
     fetchMyTarget,
     unsealTarget,
   } = useMyTarget(gameId);
-  const { participants, fetchParticipants } = useParticipants(gameId);
+  const { participants, fetchParticipantsWithNames } = useParticipantsWithNames(gameId);
 
   const [showTarget, setShowTarget] = useState(false);
   const [isPermitModalOpen, setIsPermitModalOpen] = useState(false);
 
   useEffect(() => {
     fetchMyTarget();
-    fetchParticipants();
-  }, [fetchMyTarget, fetchParticipants, refreshTrigger]);
+    fetchParticipantsWithNames();
+  }, [fetchMyTarget, fetchParticipantsWithNames, refreshTrigger]);
 
   const handleReveal = async () => {
     if (!hasValidPermit) {
@@ -45,7 +45,7 @@ export const TargetReveal = ({ gameId, refreshTrigger }: TargetRevealProps) => {
     setShowTarget(true);
   };
 
-  const getTargetAddress = () => {
+  const getTarget = (): ParticipantWithName | null => {
     if (targetIndex === null || !participants.length) return null;
     if (targetIndex >= 0 && targetIndex < participants.length) {
       return participants[targetIndex];
@@ -57,7 +57,7 @@ export const TargetReveal = ({ gameId, refreshTrigger }: TargetRevealProps) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
-  const targetAddress = getTargetAddress();
+  const target = getTarget();
 
   return (
     <div className="bg-white p-4 pb-8 rounded-sm shadow-polaroid transform rotate-2 hover:rotate-0 transition-transform duration-300 encrypted-glow">
@@ -90,19 +90,30 @@ export const TargetReveal = ({ gameId, refreshTrigger }: TargetRevealProps) => {
             <Loader2 className="w-8 h-8 text-fhenix-purple/40 animate-spin mx-auto mb-4" />
             <p className="text-sm text-santa-deepRed/60">Loading your encrypted assignment...</p>
           </div>
-        ) : showTarget && targetAddress ? (
+        ) : showTarget && target ? (
           <div className="space-y-4">
             <div className="p-6 bg-fhenix-purple/10 border border-fhenix-purple/30 rounded-lg text-center">
               <p className="text-sm text-santa-deepRed/70 mb-2">
                 You are the Secret Santa for:
               </p>
-              <div className="flex items-center justify-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-fhenix-purple/20 flex items-center justify-center">
-                  <User className="w-5 h-5 text-fhenix-purple" />
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-12 h-12 rounded-full bg-fhenix-purple/20 flex items-center justify-center">
+                  <User className="w-6 h-6 text-fhenix-purple" />
                 </div>
-                <span className="font-mono text-lg text-santa-deepRed font-bold">
-                  {truncateAddress(targetAddress)}
-                </span>
+                {target.name ? (
+                  <>
+                    <span className="text-xl text-santa-deepRed font-bold">
+                      {target.name}
+                    </span>
+                    <span className="font-mono text-sm text-santa-deepRed/60">
+                      {truncateAddress(target.address)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="font-mono text-lg text-santa-deepRed font-bold">
+                    {truncateAddress(target.address)}
+                  </span>
+                )}
               </div>
             </div>
 

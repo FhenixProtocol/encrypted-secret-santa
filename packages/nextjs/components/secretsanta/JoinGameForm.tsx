@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { UserPlus, Loader2, AlertCircle, Lock, Eye, EyeOff, CheckCircle2, RefreshCw } from "lucide-react";
+import { UserPlus, Loader2, AlertCircle, Lock, Eye, EyeOff, CheckCircle2, RefreshCw, User } from "lucide-react";
 import { useJoinGame, JoinStep } from "@/hooks/useSecretSanta";
 import { useCofheStore } from "@/services/store/cofheStore";
 import { useAccount } from "wagmi";
@@ -24,6 +24,7 @@ export const JoinGameForm = ({ onSuccess }: JoinGameFormProps) => {
   const { isInitialized } = useCofheStore();
   const { requestJoin, reset, step, isLoading, isSuccess, error } = useJoinGame();
   const [gameIdInput, setGameIdInput] = useState("");
+  const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const hasCalledSuccess = useRef(false);
@@ -36,6 +37,7 @@ export const JoinGameForm = ({ onSuccess }: JoinGameFormProps) => {
       // Delay reset to show success message
       const timer = setTimeout(() => {
         setGameIdInput("");
+        setNickname("");
         setPassword("");
         reset();
         hasCalledSuccess.current = false;
@@ -46,10 +48,10 @@ export const JoinGameForm = ({ onSuccess }: JoinGameFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValidGameId()) return;
+    if (!isValidGameId() || !nickname.trim()) return;
 
     const gameId = BigInt(gameIdInput.trim());
-    await requestJoin(gameId, password || undefined);
+    await requestJoin(gameId, nickname.trim(), password || undefined);
   };
 
   const handleReset = () => {
@@ -96,6 +98,26 @@ export const JoinGameForm = ({ onSuccess }: JoinGameFormProps) => {
               className="input w-full bg-white border border-santa-deepRed/20 focus:border-fhenix-purple rounded-lg text-santa-deepRed placeholder:text-santa-deepRed/40"
               disabled={!isConnected || isProcessing}
             />
+          </div>
+
+          <div>
+            <label className="text-sm text-santa-deepRed/80 mb-2 block font-medium">
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4" />
+                Your Nickname
+              </div>
+            </label>
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="e.g., Secret Santa Alex"
+              className="input w-full bg-white border border-santa-deepRed/20 focus:border-fhenix-purple rounded-lg text-santa-deepRed placeholder:text-santa-deepRed/40"
+              disabled={!isConnected || isProcessing}
+            />
+            <p className="text-xs text-santa-deepRed/50 mt-1">
+              This name will be visible to other players
+            </p>
           </div>
 
           <div>
@@ -181,7 +203,7 @@ export const JoinGameForm = ({ onSuccess }: JoinGameFormProps) => {
 
           <button
             type="submit"
-            disabled={!isConnected || !isInitialized || !isValidGameId() || isProcessing || isSuccess}
+            disabled={!isConnected || !isInitialized || !isValidGameId() || !nickname.trim() || isProcessing || isSuccess}
             className="btn-santa w-full h-12 flex items-center justify-center gap-2"
           >
             {isLoading ? (

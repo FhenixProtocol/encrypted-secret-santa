@@ -1,6 +1,7 @@
-// Secret Santa Contract - deployed on Base Sepolia
+// Secret Santa Contract - deployed on Arbitrum Sepolia
+// TODO: Update this address after deploying the updated contract with name support
 export const CONTRACT_ADDRESS =
-  "0xd7e8c88b9104B8c0Ee99A994d772823Fe788d0B9" as const;
+  "0x78a8fe48995bC963596F7175B6bECa66fE075142" as const;
 
 // Game states
 export enum GameState {
@@ -77,6 +78,7 @@ export const SECRET_SANTA_ABI = [
         name: "player",
         type: "address",
       },
+      { indexed: false, internalType: "string", name: "name", type: "string" },
     ],
     name: "PlayerJoined",
     type: "event",
@@ -196,6 +198,23 @@ export const SECRET_SANTA_ABI = [
       { internalType: "uint256", name: "gameId", type: "uint256" },
       { internalType: "address", name: "player", type: "address" },
     ],
+    name: "getPlayerName",
+    outputs: [{ internalType: "string", name: "", type: "string" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "gameId", type: "uint256" }],
+    name: "getParticipantNames",
+    outputs: [{ internalType: "string[]", name: "", type: "string[]" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "gameId", type: "uint256" },
+      { internalType: "address", name: "player", type: "address" },
+    ],
     name: "getJoinStatus",
     outputs: [
       { internalType: "bool", name: "hasPending", type: "bool" },
@@ -291,6 +310,7 @@ export const SECRET_SANTA_ABI = [
   {
     inputs: [
       { internalType: "string", name: "name", type: "string" },
+      { internalType: "string", name: "creatorName", type: "string" },
       {
         components: [
           { internalType: "uint256", name: "ctHash", type: "uint256" },
@@ -323,6 +343,7 @@ export const SECRET_SANTA_ABI = [
   {
     inputs: [
       { internalType: "uint256", name: "gameId", type: "uint256" },
+      { internalType: "string", name: "playerName", type: "string" },
       {
         components: [
           { internalType: "uint256", name: "ctHash", type: "uint256" },

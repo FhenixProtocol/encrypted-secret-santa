@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Loader2, Gift, AlertCircle, Lock, Eye, EyeOff } from "lucide-react";
+import { Plus, Loader2, Gift, AlertCircle, Lock, Eye, EyeOff, User } from "lucide-react";
 import { useCreateGame } from "@/hooks/useSecretSanta";
 import { useCofheStore } from "@/services/store/cofheStore";
 import { useAccount } from "wagmi";
@@ -15,16 +15,18 @@ export const CreateGameForm = ({ onSuccess }: CreateGameFormProps) => {
   const { isInitialized } = useCofheStore();
   const { createGame, isLoading, isSuccess, error } = useCreateGame();
   const [gameName, setGameName] = useState("");
+  const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!gameName.trim()) return;
+    if (!gameName.trim() || !nickname.trim()) return;
 
-    const hash = await createGame(gameName.trim(), password || undefined);
+    const hash = await createGame(gameName.trim(), nickname.trim(), password || undefined);
     if (hash) {
       setGameName("");
+      setNickname("");
       setPassword("");
       onSuccess?.();
     }
@@ -57,6 +59,26 @@ export const CreateGameForm = ({ onSuccess }: CreateGameFormProps) => {
               className="input w-full bg-white border border-santa-deepRed/20 focus:border-fhenix-purple rounded-lg text-santa-deepRed placeholder:text-santa-deepRed/40"
               disabled={!isConnected || isLoading}
             />
+          </div>
+
+          <div>
+            <label className="text-sm text-santa-deepRed/80 mb-2 block font-medium">
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4" />
+                Your Nickname
+              </div>
+            </label>
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="e.g., Santa Alex"
+              className="input w-full bg-white border border-santa-deepRed/20 focus:border-fhenix-purple rounded-lg text-santa-deepRed placeholder:text-santa-deepRed/40"
+              disabled={!isConnected || isLoading}
+            />
+            <p className="text-xs text-santa-deepRed/50 mt-1">
+              This name will be visible to other players
+            </p>
           </div>
 
           <div>
@@ -105,7 +127,7 @@ export const CreateGameForm = ({ onSuccess }: CreateGameFormProps) => {
 
           <button
             type="submit"
-            disabled={!isConnected || !isInitialized || !gameName.trim() || isLoading}
+            disabled={!isConnected || !isInitialized || !gameName.trim() || !nickname.trim() || isLoading}
             className="btn-fhenix w-full h-12 flex items-center justify-center gap-2"
           >
             {isLoading ? (

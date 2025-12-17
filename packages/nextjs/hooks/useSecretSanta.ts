@@ -76,8 +76,8 @@ function parseError(err: unknown): string {
 
 export function useContractAddress(): `0x${string}` | undefined {
   const { chain } = useAccount();
-  // Only Base Sepolia is supported
-  if (chain?.id === 84532) {
+  // Only Arbitrum Sepolia is supported
+  if (chain?.id === 421614) {
     return CONTRACT_ADDRESS;
   }
   return undefined;
@@ -235,7 +235,7 @@ export function useCreateGame() {
   const [error, setError] = useState<string | null>(null);
 
   const createGame = useCallback(
-    async (gameName: string, password?: string) => {
+    async (gameName: string, creatorName: string, password?: string) => {
       if (!contractAddress || !address || !chain || !publicClient) {
         setError("Wallet not connected or wrong network");
         return null;
@@ -280,7 +280,7 @@ export function useCreateGame() {
           abi: SECRET_SANTA_ABI,
           functionName: "createGame",
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          args: [gameName, encryptedEntropy as any, encryptedPassword as any, hasPassword],
+          args: [gameName, creatorName, encryptedEntropy as any, encryptedPassword as any, hasPassword],
         });
         console.log("Transaction hash:", hash);
 
@@ -383,7 +383,7 @@ export function useJoinGame() {
   }, []);
 
   const requestJoin = useCallback(
-    async (gameId: bigint, password?: string) => {
+    async (gameId: bigint, playerName: string, password?: string) => {
       if (!contractAddress || !address || !chain || !publicClient) {
         setError("Wallet not connected or wrong network");
         setStep("error");
@@ -437,7 +437,7 @@ export function useJoinGame() {
           abi: SECRET_SANTA_ABI,
           functionName: "requestJoinGame",
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          args: [gameId, encryptedPassword as any, encryptedEntropy as any],
+          args: [gameId, playerName, encryptedPassword as any, encryptedEntropy as any],
         });
 
         // Wait for transaction
@@ -706,6 +706,104 @@ export function useParticipants(gameId: bigint | null) {
   }, [publicClient, contractAddress, gameId]);
 
   return { participants, isLoading, error, fetchParticipants };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Hook: useParticipantsWithNames - Get participants with their names
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface ParticipantWithName {
+  address: `0x${string}`;
+  name: string;
+}
+
+export function useParticipantsWithNames(gameId: bigint | null) {
+  const publicClient = usePublicClient();
+  const contractAddress = useContractAddress();
+  const [participants, setParticipants] = useState<ParticipantWithName[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchParticipantsWithNames = useCallback(async () => {
+    if (!publicClient || !contractAddress || gameId === null) {
+      return [];
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Fetch addresses and names in parallel
+      const [addresses, names] = await Promise.all([
+        publicClient.readContract({
+          address: contractAddress,
+          abi: SECRET_SANTA_ABI,
+          functionName: "getParticipants",
+          args: [gameId],
+        }),
+        publicClient.readContract({
+          address: contractAddress,
+          abi: SECRET_SANTA_ABI,
+          functionName: "getParticipantNames",
+          args: [gameId],
+        }),
+      ]);
+
+      const result: ParticipantWithName[] = (addresses as `0x${string}`[]).map(
+        (addr, i) => ({
+          address: addr,
+          name: (names as string[])[i] || "",
+        })
+      );
+
+      setParticipants(result);
+      return result;
+    } catch (err) {
+      setError(parseError(err));
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  }, [publicClient, contractAddress, gameId]);
+
+  return { participants, isLoading, error, fetchParticipantsWithNames };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Hook: usePlayerName - Get a single player's name for a game
+// ═══════════════════════════════════════════════════════════════════════════
+
+export function usePlayerName(gameId: bigint | null, playerAddress: `0x${string}` | null) {
+  const publicClient = usePublicClient();
+  const contractAddress = useContractAddress();
+  const [name, setName] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchPlayerName = useCallback(async () => {
+    if (!publicClient || !contractAddress || gameId === null || !playerAddress) {
+      return "";
+    }
+
+    setIsLoading(true);
+
+    try {
+      const result = await publicClient.readContract({
+        address: contractAddress,
+        abi: SECRET_SANTA_ABI,
+        functionName: "getPlayerName",
+        args: [gameId, playerAddress],
+      });
+
+      setName(result as string);
+      return result as string;
+    } catch {
+      return "";
+    } finally {
+      setIsLoading(false);
+    }
+  }, [publicClient, contractAddress, gameId, playerAddress]);
+
+  return { name, isLoading, fetchPlayerName };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

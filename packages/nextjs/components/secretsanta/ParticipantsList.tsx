@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 import { Users, Loader2, Crown, User } from "lucide-react";
-import { useParticipants } from "@/hooks/useSecretSanta";
+import { useParticipantsWithNames, ParticipantWithName } from "@/hooks/useSecretSanta";
 import { useAccount } from "wagmi";
 
 interface ParticipantsListProps {
@@ -24,11 +24,11 @@ const shuffleArray = <T,>(array: T[], seed: bigint): T[] => {
 
 export const ParticipantsList = ({ gameId, creatorAddress }: ParticipantsListProps) => {
   const { address: currentUser } = useAccount();
-  const { participants, isLoading, error, fetchParticipants } = useParticipants(gameId);
+  const { participants, isLoading, error, fetchParticipantsWithNames } = useParticipantsWithNames(gameId);
 
   useEffect(() => {
-    fetchParticipants();
-  }, [fetchParticipants]);
+    fetchParticipantsWithNames();
+  }, [fetchParticipantsWithNames]);
 
   // Shuffle participants for display (hides join order)
   const shuffledParticipants = useMemo(() => {
@@ -60,12 +60,12 @@ export const ParticipantsList = ({ gameId, creatorAddress }: ParticipantsListPro
         ) : (
           <div className="space-y-2">
             {shuffledParticipants.map((participant) => {
-              const isCreator = participant.toLowerCase() === creatorAddress.toLowerCase();
-              const isCurrentUser = participant.toLowerCase() === currentUser?.toLowerCase();
+              const isCreator = participant.address.toLowerCase() === creatorAddress.toLowerCase();
+              const isCurrentUser = participant.address.toLowerCase() === currentUser?.toLowerCase();
 
               return (
                 <div
-                  key={participant}
+                  key={participant.address}
                   className={`flex items-center justify-between p-2 rounded-lg ${
                     isCurrentUser ? "bg-fhenix-purple/10 border border-fhenix-purple/30" : "bg-white/50"
                   }`}
@@ -74,9 +74,22 @@ export const ParticipantsList = ({ gameId, creatorAddress }: ParticipantsListPro
                     <div className="w-6 h-6 rounded-full bg-santa-deepRed/10 flex items-center justify-center">
                       <User className="w-3 h-3 text-santa-deepRed" />
                     </div>
-                    <span className="font-mono text-sm text-santa-deepRed">
-                      {truncateAddress(participant)}
-                    </span>
+                    <div className="flex flex-col">
+                      {participant.name ? (
+                        <>
+                          <span className="text-sm font-medium text-santa-deepRed">
+                            {participant.name}
+                          </span>
+                          <span className="font-mono text-xs text-santa-deepRed/50">
+                            {truncateAddress(participant.address)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="font-mono text-sm text-santa-deepRed">
+                          {truncateAddress(participant.address)}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-2">

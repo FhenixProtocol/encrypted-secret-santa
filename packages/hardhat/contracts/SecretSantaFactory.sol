@@ -69,6 +69,7 @@ contract SecretSanta {
     struct PendingJoin {
         ebool passwordMatch;   // Encrypted comparison result
         euint32 userEntropy;   // Store entropy for later use
+        string playerName;     // Store name for later use
         bool exists;
     }
 
@@ -94,6 +95,9 @@ contract SecretSanta {
     // Pending join requests for password-protected games
     mapping(uint256 => mapping(address => PendingJoin)) internal pendingJoins;
 
+    // Per-game player names: gameId => player => name
+    mapping(uint256 => mapping(address => string)) public playerNames;
+
     // ══════════════════════════════════════════════════════════════
     // EVENTS
     // ══════════════════════════════════════════════════════════════
@@ -105,7 +109,7 @@ contract SecretSanta {
         bool hasPassword
     );
 
-    event PlayerJoined(uint256 indexed gameId, address indexed player);
+    event PlayerJoined(uint256 indexed gameId, address indexed player, string name);
     event JoinRequested(uint256 indexed gameId, address indexed player);
     event GameFinalized(uint256 indexed gameId);
     event GameRevealed(uint256 indexed gameId);
@@ -133,12 +137,14 @@ contract SecretSanta {
 
     /// @notice Create a new Secret Santa game
     /// @param name The name of the game
+    /// @param creatorName The display name of the creator
     /// @param creatorEntropy Encrypted random value for assignment randomness
     /// @param password Encrypted password (ignored if hasPassword is false)
     /// @param hasPassword Whether the game requires a password to join
     /// @return gameId The ID of the created game
     function createGame(
         string calldata name,
+        string calldata creatorName,
         InEuint32 calldata creatorEntropy,
         InEuint32 calldata password,
         bool hasPassword
@@ -164,11 +170,13 @@ contract SecretSanta {
         // Auto-register creator (no password check needed)
         game.participants.push(msg.sender);
         playerIndex[gameId][msg.sender] = 1; // 1-indexed
+        playerNames[gameId][msg.sender] = creatorName;
 
         gamesByCreator[msg.sender].push(gameId);
         gamesByPlayer[msg.sender].push(gameId);
 
         emit GameCreated(gameId, msg.sender, name, hasPassword);
+        emit PlayerJoined(gameId, msg.sender, creatorName);
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -178,10 +186,12 @@ contract SecretSanta {
     /// @notice Request to join a game (Step 1)
     /// @dev For public games, joins immediately. For password games, starts async verification.
     /// @param gameId The ID of the game to join
+    /// @param playerName The display name for this player
     /// @param password Encrypted password guess (ignored for public games)
     /// @param userEntropy Encrypted random value for assignment randomness
     function requestJoinGame(
         uint256 gameId,
+        string calldata playerName,
         InEuint32 calldata password,
         InEuint32 calldata userEntropy
     ) external {
@@ -194,7 +204,7 @@ contract SecretSanta {
 
         if (!game.hasPassword) {
             // No password - directly join
-            _addPlayer(gameId, userEntropy);
+            _addPlayer(gameId, playerName, userEntropy);
             return;
         }
 
@@ -213,6 +223,7 @@ contract SecretSanta {
         pendingJoins[gameId][msg.sender] = PendingJoin({
             passwordMatch: passwordMatch,
             userEntropy: storedEntropy,
+            playerName: playerName,
             exists: true
         });
 
@@ -240,19 +251,20 @@ contract SecretSanta {
             revert InvalidPassword();
         }
 
-        // Password matched - add player using stored entropy
-        _addPlayerWithStoredEntropy(gameId, pending.userEntropy);
+        // Password matched - add player using stored entropy and name
+        _addPlayerWithStoredEntropy(gameId, pending.playerName, pending.userEntropy);
 
         // Clean up pending join
         delete pendingJoins[gameId][msg.sender];
     }
 
     /// @notice Internal function to add a player with fresh entropy input
-    function _addPlayer(uint256 gameId, InEuint32 calldata userEntropy) internal {
+    function _addPlayer(uint256 gameId, string calldata playerName, InEuint32 calldata userEntropy) internal {
         Game storage game = games[gameId];
 
         game.participants.push(msg.sender);
         playerIndex[gameId][msg.sender] = game.participants.length; // 1-indexed
+        playerNames[gameId][msg.sender] = playerName;
 
         // XOR entropy for combined randomness
         game.entropy = FHE.xor(game.entropy, FHE.asEuint32(userEntropy));
@@ -260,15 +272,16 @@ contract SecretSanta {
 
         gamesByPlayer[msg.sender].push(gameId);
 
-        emit PlayerJoined(gameId, msg.sender);
+        emit PlayerJoined(gameId, msg.sender, playerName);
     }
 
     /// @notice Internal function to add a player with already-stored entropy
-    function _addPlayerWithStoredEntropy(uint256 gameId, euint32 userEntropy) internal {
+    function _addPlayerWithStoredEntropy(uint256 gameId, string memory playerName, euint32 userEntropy) internal {
         Game storage game = games[gameId];
 
         game.participants.push(msg.sender);
         playerIndex[gameId][msg.sender] = game.participants.length; // 1-indexed
+        playerNames[gameId][msg.sender] = playerName;
 
         // XOR entropy for combined randomness
         game.entropy = FHE.xor(game.entropy, userEntropy);
@@ -276,7 +289,7 @@ contract SecretSanta {
 
         gamesByPlayer[msg.sender].push(gameId);
 
-        emit PlayerJoined(gameId, msg.sender);
+        emit PlayerJoined(gameId, msg.sender, playerName);
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -422,6 +435,22 @@ contract SecretSanta {
     /// @notice Check if a user is registered in a game
     function isRegistered(uint256 gameId, address user) external view returns (bool) {
         return playerIndex[gameId][user] != 0;
+    }
+
+    /// @notice Get a player's display name for a game
+    function getPlayerName(uint256 gameId, address player) external view returns (string memory) {
+        return playerNames[gameId][player];
+    }
+
+    /// @notice Get all participant names for a game
+    function getParticipantNames(uint256 gameId) external view returns (string[] memory) {
+        if (gameId >= gameCount) revert GameNotFound();
+        address[] memory participants = games[gameId].participants;
+        string[] memory names = new string[](participants.length);
+        for (uint256 i = 0; i < participants.length; i++) {
+            names[i] = playerNames[gameId][participants[i]];
+        }
+        return names;
     }
 
     /// @notice Get games created by an address
