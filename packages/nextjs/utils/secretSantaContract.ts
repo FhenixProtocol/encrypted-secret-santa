@@ -36,6 +36,32 @@ export interface JoinStatus {
 
 // Simplified SecretSanta ABI (single contract with password support)
 export const SECRET_SANTA_ABI = [
+  // Custom Errors
+  { inputs: [], name: "AlreadyRegistered", type: "error" },
+  { inputs: [], name: "DecryptionNotReady", type: "error" },
+  { inputs: [], name: "GameNotFound", type: "error" },
+  { inputs: [], name: "GameNotStarted", type: "error" },
+  {
+    inputs: [
+      { internalType: "uint8", name: "got", type: "uint8" },
+      { internalType: "uint8", name: "expected", type: "uint8" },
+    ],
+    name: "InvalidEncryptedInput",
+    type: "error",
+  },
+  { inputs: [], name: "InvalidPassword", type: "error" },
+  { inputs: [], name: "NeedAtLeast3Players", type: "error" },
+  { inputs: [], name: "NoPendingJoin", type: "error" },
+  { inputs: [], name: "NotActive", type: "error" },
+  { inputs: [], name: "NotCreator", type: "error" },
+  { inputs: [], name: "NotRegistered", type: "error" },
+  { inputs: [], name: "NotRegistrationPhase", type: "error" },
+  {
+    inputs: [{ internalType: "int32", name: "value", type: "int32" }],
+    name: "SecurityZoneOutOfBounds",
+    type: "error",
+  },
+
   // Events
   {
     anonymous: false,

@@ -779,6 +779,7 @@ export function useCompleteJoinOnly() {
 
 export function useFinalizeGame() {
   const publicClient = usePublicClient();
+  const { address } = useAccount();
   const contractAddress = useContractAddress();
   const { writeContractAsync, data: txHash, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
@@ -787,7 +788,7 @@ export function useFinalizeGame() {
 
   const finalizeGame = useCallback(
     async (gameId: bigint) => {
-      if (!contractAddress || !publicClient) {
+      if (!contractAddress || !publicClient || !address) {
         setError("Wrong network or not connected");
         return null;
       }
@@ -802,6 +803,7 @@ export function useFinalizeGame() {
           abi: SECRET_SANTA_ABI,
           functionName: "finalizeGame",
           args: [gameId],
+          account: address,
         });
 
         setIsSimulating(false);
@@ -822,7 +824,7 @@ export function useFinalizeGame() {
         return null;
       }
     },
-    [contractAddress, publicClient, writeContractAsync]
+    [contractAddress, publicClient, writeContractAsync, address]
   );
 
   return {
