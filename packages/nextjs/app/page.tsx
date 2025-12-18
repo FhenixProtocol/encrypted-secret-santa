@@ -120,18 +120,7 @@ export default function Home() {
       <main className="relative z-10 max-w-5xl mx-auto flex flex-col gap-4 p-4 md:p-6">
         {/* Header - Logo and Wallet */}
         <header className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Image
-              src="/fhenix_logo_dark.svg"
-              alt="Fhenix"
-              width={28}
-              height={28}
-              className="opacity-90"
-            />
-            <span className="text-fhenix-purple font-display font-bold text-sm">
-              fhenix
-            </span>
-          </div>
+          <div className="flex items-center gap-2"></div>
           <WalletCard />
         </header>
 
@@ -222,9 +211,28 @@ export default function Home() {
 
       {/* Footer - Compact */}
       <footer className="relative z-10 py-4 border-t border-white/10">
-        <div className="max-w-5xl mx-auto px-4 flex items-center justify-center gap-2">
-          <Lock className="w-3 h-3 text-white/30" />
-          <span className="text-white/30 text-xs">Secured with FHE</span>
+        <div className="max-w-5xl mx-auto px-4 flex items-center justify-center gap-6">
+          <div className="flex items-center gap-2">
+            <span className="text-white/40 text-sm">Powered by</span>
+            <Image
+              src="/fhenix_logo_dark.svg"
+              alt="Fhenix"
+              width={60}
+              height={60}
+              className="opacity-80"
+            />
+          </div>
+          <div className="w-px h-6 bg-white/20" />
+          <div className="flex items-center gap-2">
+            <span className="text-white/40 text-sm">on</span>
+            <Image
+              src="/arbitrum.png"
+              alt="Arbitrum"
+              width={72}
+              height={72}
+              className="opacity-80"
+            />
+          </div>
         </div>
       </footer>
     </div>

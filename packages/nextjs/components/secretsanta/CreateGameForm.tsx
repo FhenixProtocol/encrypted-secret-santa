@@ -1,7 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Loader2, Gift, AlertCircle, Lock, Eye, EyeOff, User } from "lucide-react";
+import {
+  Plus,
+  Loader2,
+  Gift,
+  AlertCircle,
+  Lock,
+  Eye,
+  EyeOff,
+  User,
+} from "lucide-react";
 import { useCreateGame } from "@/hooks/useSecretSanta";
 import { useCofheStore } from "@/services/store/cofheStore";
 import { useAccount } from "wagmi";
@@ -23,7 +32,11 @@ export const CreateGameForm = ({ onSuccess }: CreateGameFormProps) => {
     e.preventDefault();
     if (!gameName.trim() || !nickname.trim()) return;
 
-    const hash = await createGame(gameName.trim(), nickname.trim(), password || undefined);
+    const hash = await createGame(
+      gameName.trim(),
+      nickname.trim(),
+      password || undefined
+    );
     if (hash) {
       setGameName("");
       setNickname("");
@@ -72,7 +85,7 @@ export const CreateGameForm = ({ onSuccess }: CreateGameFormProps) => {
               type="text"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              placeholder="e.g., Santa Alex"
+              placeholder="e.g., Santa Claus"
               className="input w-full bg-white border border-santa-deepRed/20 focus:border-fhenix-purple rounded-lg text-santa-deepRed placeholder:text-santa-deepRed/40"
               disabled={!isConnected || isLoading}
             />
@@ -102,7 +115,11 @@ export const CreateGameForm = ({ onSuccess }: CreateGameFormProps) => {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-santa-deepRed/40 hover:text-santa-deepRed transition-colors"
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
               </button>
             </div>
             <p className="text-xs text-santa-deepRed/50 mt-1">
@@ -127,7 +144,13 @@ export const CreateGameForm = ({ onSuccess }: CreateGameFormProps) => {
 
           <button
             type="submit"
-            disabled={!isConnected || !isInitialized || !gameName.trim() || !nickname.trim() || isLoading}
+            disabled={
+              !isConnected ||
+              !isInitialized ||
+              !gameName.trim() ||
+              !nickname.trim() ||
+              isLoading
+            }
             className="btn-fhenix w-full h-12 flex items-center justify-center gap-2"
           >
             {isLoading ? (

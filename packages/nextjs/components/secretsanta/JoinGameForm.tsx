@@ -1,8 +1,24 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { UserPlus, Loader2, AlertCircle, Lock, Eye, EyeOff, CheckCircle2, RefreshCw, User, Clock } from "lucide-react";
-import { useJoinGame, JoinStep, usePendingJoinStatus, useCompleteJoinOnly } from "@/hooks/useSecretSanta";
+import { useState, useEffect, useRef, useMemo } from "react";
+import {
+  UserPlus,
+  Loader2,
+  AlertCircle,
+  Lock,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  RefreshCw,
+  User,
+  Clock,
+} from "lucide-react";
+import {
+  useJoinGame,
+  JoinStep,
+  usePendingJoinStatus,
+  useCompleteJoinOnly,
+} from "@/hooks/useSecretSanta";
 import { useCofheStore } from "@/services/store/cofheStore";
 import { useAccount } from "wagmi";
 
@@ -22,35 +38,45 @@ const stepMessages: Record<JoinStep, string> = {
 export const JoinGameForm = ({ onSuccess }: JoinGameFormProps) => {
   const { isConnected } = useAccount();
   const { isInitialized } = useCofheStore();
-  const { requestJoin, reset, step, isLoading, isSuccess, error } = useJoinGame();
+  const { requestJoin, reset, step, isLoading, isSuccess, error } =
+    useJoinGame();
   const [gameIdInput, setGameIdInput] = useState("");
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const hasCalledSuccess = useRef(false);
 
-  // Check for pending join requests
-  const parsedGameId = (() => {
+  // Check for pending join requests - memoize to avoid excessive RPC calls
+  const parsedGameId = useMemo(() => {
     try {
-      const id = BigInt(gameIdInput.trim());
+      const trimmed = gameIdInput.trim();
+      if (!trimmed) return null;
+      const id = BigInt(trimmed);
       return id >= BigInt(0) ? id : null;
     } catch {
       return null;
     }
-  })();
+  }, [gameIdInput]);
 
-  const { status: pendingStatus, refetch: refetchPendingStatus } = usePendingJoinStatus(parsedGameId);
+  const { status: pendingStatus, refetch: refetchPendingStatus } =
+    usePendingJoinStatus(parsedGameId);
   const {
     completeJoin: retryComplete,
     reset: resetRetry,
     isLoading: isRetrying,
     isSuccess: retrySuccess,
-    error: retryError
+    error: retryError,
   } = useCompleteJoinOnly();
 
   // Check if there's a pending join ready to complete
-  const hasPendingJoinReady = pendingStatus?.hasPending && pendingStatus?.isDecrypted && !pendingStatus?.isRegistered;
-  const hasPendingJoinWaiting = pendingStatus?.hasPending && !pendingStatus?.isDecrypted && !pendingStatus?.isRegistered;
+  const hasPendingJoinReady =
+    pendingStatus?.hasPending &&
+    pendingStatus?.isDecrypted &&
+    !pendingStatus?.isRegistered;
+  const hasPendingJoinWaiting =
+    pendingStatus?.hasPending &&
+    !pendingStatus?.isDecrypted &&
+    !pendingStatus?.isRegistered;
 
   // Reset form on success (either normal join or retry)
   useEffect(() => {
@@ -70,7 +96,14 @@ export const JoinGameForm = ({ onSuccess }: JoinGameFormProps) => {
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [isSuccess, retrySuccess, onSuccess, reset, resetRetry, refetchPendingStatus]);
+  }, [
+    isSuccess,
+    retrySuccess,
+    onSuccess,
+    reset,
+    resetRetry,
+    refetchPendingStatus,
+  ]);
 
   // Refetch pending status when retry fails (wrong password deletes the pending join on-chain)
   useEffect(() => {
@@ -148,7 +181,7 @@ export const JoinGameForm = ({ onSuccess }: JoinGameFormProps) => {
               type="text"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              placeholder="e.g., Secret Santa Alex"
+              placeholder="e.g., Secret Santa Claus"
               className="input w-full bg-white border border-santa-deepRed/20 focus:border-fhenix-purple rounded-lg text-santa-deepRed placeholder:text-santa-deepRed/40"
               disabled={!isConnected || isProcessing}
             />
@@ -178,7 +211,11 @@ export const JoinGameForm = ({ onSuccess }: JoinGameFormProps) => {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-santa-deepRed/40 hover:text-santa-deepRed transition-colors"
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
               </button>
             </div>
             <p className="text-xs text-santa-deepRed/50 mt-1">
@@ -196,7 +233,8 @@ export const JoinGameForm = ({ onSuccess }: JoinGameFormProps) => {
                     Pending join request found!
                   </p>
                   <p className="text-xs text-santa-deepRed/60 mt-1">
-                    Click to complete, or submit a new request with a different password.
+                    Click to complete, or submit a new request with a different
+                    password.
                   </p>
                   <button
                     type="button"
@@ -231,7 +269,8 @@ export const JoinGameForm = ({ onSuccess }: JoinGameFormProps) => {
                     Join request pending...
                   </p>
                   <p className="text-xs text-santa-deepRed/60 mt-1">
-                    Password is being verified on-chain. This may take a few seconds.
+                    Password is being verified on-chain. This may take a few
+                    seconds.
                   </p>
                   <button
                     type="button"
@@ -282,7 +321,8 @@ export const JoinGameForm = ({ onSuccess }: JoinGameFormProps) => {
                   </p>
                   {step === "waiting" && (
                     <p className="text-xs text-santa-deepRed/60 mt-1">
-                      This may take a few seconds while FHE decryption completes...
+                      This may take a few seconds while FHE decryption
+                      completes...
                     </p>
                   )}
                 </div>
@@ -325,7 +365,16 @@ export const JoinGameForm = ({ onSuccess }: JoinGameFormProps) => {
 
           <button
             type="submit"
-            disabled={!isConnected || !isInitialized || !isValidGameId() || !nickname.trim() || isProcessing || isRetrying || isSuccess || retrySuccess}
+            disabled={
+              !isConnected ||
+              !isInitialized ||
+              !isValidGameId() ||
+              !nickname.trim() ||
+              isProcessing ||
+              isRetrying ||
+              isSuccess ||
+              retrySuccess
+            }
             className="btn-santa w-full h-12 flex items-center justify-center gap-2"
           >
             {isLoading ? (

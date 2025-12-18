@@ -290,34 +290,36 @@ export function useCreateGame() {
         setIsConfirming(false);
 
         if (receipt.status === "success") {
-          // Get the game count to determine the new game ID (it's count - 1)
-          const gameCount = await publicClient.readContract({
-            address: contractAddress,
-            abi: SECRET_SANTA_ABI,
-            functionName: "gameCount",
-          });
-
-          const newGameId = gameCount - BigInt(1);
-
-          // Fetch the game info
-          const gameInfo = await publicClient.readContract({
-            address: contractAddress,
-            abi: SECRET_SANTA_ABI,
-            functionName: "getGame",
-            args: [newGameId],
-          });
-
-          // Save to local store
-          addGame({
-            gameId: newGameId.toString(),
-            creator: gameInfo.creator as string,
-            name: gameInfo.name,
-            createdAt: Number(gameInfo.createdAt),
-            chainId: chain.id,
-            joinedAt: Date.now(),
-          });
-
           setIsSuccess(true);
+
+          // Try to save to local store (non-critical, don't fail if this errors)
+          try {
+            const gameCount = await publicClient.readContract({
+              address: contractAddress,
+              abi: SECRET_SANTA_ABI,
+              functionName: "gameCount",
+            });
+
+            const newGameId = gameCount - BigInt(1);
+
+            const gameInfo = await publicClient.readContract({
+              address: contractAddress,
+              abi: SECRET_SANTA_ABI,
+              functionName: "getGame",
+              args: [newGameId],
+            });
+
+            addGame({
+              gameId: newGameId.toString(),
+              creator: gameInfo.creator as string,
+              name: gameInfo.name,
+              createdAt: Number(gameInfo.createdAt),
+              chainId: chain.id,
+              joinedAt: Date.now(),
+            });
+          } catch (storeErr) {
+            console.error("Failed to save game to local store:", storeErr);
+          }
         }
 
         return hash;
@@ -536,25 +538,29 @@ export function useJoinGame() {
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
         if (receipt.status === "success") {
-          // Fetch game info and save
-          const gameInfo = await publicClient.readContract({
-            address: contractAddress,
-            abi: SECRET_SANTA_ABI,
-            functionName: "getGame",
-            args: [gameId],
-          });
-
-          addGame({
-            gameId: gameId.toString(),
-            creator: gameInfo.creator as string,
-            name: gameInfo.name,
-            createdAt: Number(gameInfo.createdAt),
-            chainId: chain.id,
-            joinedAt: Date.now(),
-          });
-
           setIsSuccess(true);
           setStep("done");
+
+          // Try to save to local store (non-critical)
+          try {
+            const gameInfo = await publicClient.readContract({
+              address: contractAddress,
+              abi: SECRET_SANTA_ABI,
+              functionName: "getGame",
+              args: [gameId],
+            });
+
+            addGame({
+              gameId: gameId.toString(),
+              creator: gameInfo.creator as string,
+              name: gameInfo.name,
+              createdAt: Number(gameInfo.createdAt),
+              chainId: chain.id,
+              joinedAt: Date.now(),
+            });
+          } catch (storeErr) {
+            console.error("Failed to save game to local store:", storeErr);
+          }
         } else {
           setError("Complete join transaction failed");
           setStep("error");
@@ -597,25 +603,29 @@ export function usePendingJoinStatus(gameId: bigint | null) {
   const [status, setStatus] = useState<PendingJoinInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Use string for stable dependency comparison (bigint creates new objects)
+  const gameIdStr = gameId?.toString() ?? null;
+
   const checkStatus = useCallback(async () => {
-    if (!publicClient || !contractAddress || !address || gameId === null) {
+    if (!publicClient || !contractAddress || !address || gameIdStr === null) {
       setStatus(null);
       return null;
     }
 
+    const gameIdBigInt = BigInt(gameIdStr);
     setIsLoading(true);
     try {
       const result = await publicClient.readContract({
         address: contractAddress,
         abi: SECRET_SANTA_ABI,
         functionName: "getJoinStatus",
-        args: [gameId, address],
+        args: [gameIdBigInt, address],
       });
 
       const [hasPending, isDecrypted, isRegistered] = result as [boolean, boolean, boolean];
 
       const info: PendingJoinInfo = {
-        gameId,
+        gameId: gameIdBigInt,
         hasPending,
         isDecrypted,
         isRegistered,
@@ -630,9 +640,9 @@ export function usePendingJoinStatus(gameId: bigint | null) {
     } finally {
       setIsLoading(false);
     }
-  }, [publicClient, contractAddress, address, gameId]);
+  }, [publicClient, contractAddress, address, gameIdStr]);
 
-  // Check status on mount and when dependencies change
+  // Check status on mount and when gameId changes
   useEffect(() => {
     checkStatus();
   }, [checkStatus]);
@@ -709,24 +719,31 @@ export function useCompleteJoinOnly() {
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
         if (receipt.status === "success") {
-          // Fetch game info and save
-          const gameInfo = await publicClient.readContract({
-            address: contractAddress,
-            abi: SECRET_SANTA_ABI,
-            functionName: "getGame",
-            args: [gameId],
-          });
-
-          addGame({
-            gameId: gameId.toString(),
-            creator: gameInfo.creator as string,
-            name: gameInfo.name,
-            createdAt: Number(gameInfo.createdAt),
-            chainId: chain.id,
-            joinedAt: Date.now(),
-          });
-
+          // Set success state FIRST before any additional RPC calls
+          // This ensures the UI shows success even if subsequent calls fail
           setIsSuccess(true);
+
+          // Try to fetch game info and save to local store (non-critical)
+          try {
+            const gameInfo = await publicClient.readContract({
+              address: contractAddress,
+              abi: SECRET_SANTA_ABI,
+              functionName: "getGame",
+              args: [gameId],
+            });
+
+            addGame({
+              gameId: gameId.toString(),
+              creator: gameInfo.creator as string,
+              name: gameInfo.name,
+              createdAt: Number(gameInfo.createdAt),
+              chainId: chain.id,
+              joinedAt: Date.now(),
+            });
+          } catch (storeErr) {
+            console.error("Failed to save game to local store:", storeErr);
+          }
+
           return hash;
         } else {
           setError("Transaction failed");
