@@ -121,7 +121,6 @@ contract SecretSanta {
     error GameNotFound();
     error NotRegistrationPhase();
     error AlreadyRegistered();
-    error PendingJoinExists();
     error NoPendingJoin();
     error DecryptionNotReady();
     error InvalidPassword();
@@ -200,7 +199,7 @@ contract SecretSanta {
 
         if (game.state != GameState.REGISTRATION) revert NotRegistrationPhase();
         if (playerIndex[gameId][msg.sender] != 0) revert AlreadyRegistered();
-        if (pendingJoins[gameId][msg.sender].exists) revert PendingJoinExists();
+        // Note: We allow overwriting existing pending joins so users can retry with different passwords
 
         if (!game.hasPassword) {
             // No password - directly join
@@ -219,7 +218,7 @@ contract SecretSanta {
         // Request decryption of the match result
         FHE.decrypt(passwordMatch);
 
-        // Store pending join
+        // Store pending join (overwrites any previous attempt)
         pendingJoins[gameId][msg.sender] = PendingJoin({
             passwordMatch: passwordMatch,
             userEntropy: storedEntropy,
@@ -245,11 +244,7 @@ contract SecretSanta {
         // Get decrypted result
         (bool matched, bool decrypted) = FHE.getDecryptResultSafe(pending.passwordMatch);
         if (!decrypted) revert DecryptionNotReady();
-        if (!matched) {
-            // Clean up failed attempt so user can retry
-            delete pendingJoins[gameId][msg.sender];
-            revert InvalidPassword();
-        }
+        if (!matched) revert InvalidPassword();
 
         // Password matched - add player using stored entropy and name
         _addPlayerWithStoredEntropy(gameId, pending.playerName, pending.userEntropy);

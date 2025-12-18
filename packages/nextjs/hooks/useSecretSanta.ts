@@ -569,6 +569,7 @@ export function useJoinGame() {
 
   return {
     requestJoin,
+    completeJoin,
     reset,
     step,
     currentGameId,
@@ -579,25 +580,215 @@ export function useJoinGame() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Hook: useFinalizeGame - Finalize a game (creator only)
+// Hook: usePendingJoinStatus - Check if user has a pending join request
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function useFinalizeGame() {
+export interface PendingJoinInfo {
+  gameId: bigint;
+  hasPending: boolean;
+  isDecrypted: boolean;
+  isRegistered: boolean;
+}
+
+export function usePendingJoinStatus(gameId: bigint | null) {
+  const publicClient = usePublicClient();
+  const { address } = useAccount();
   const contractAddress = useContractAddress();
-  const { writeContractAsync, data: txHash, isPending } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+  const [status, setStatus] = useState<PendingJoinInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const checkStatus = useCallback(async () => {
+    if (!publicClient || !contractAddress || !address || gameId === null) {
+      setStatus(null);
+      return null;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await publicClient.readContract({
+        address: contractAddress,
+        abi: SECRET_SANTA_ABI,
+        functionName: "getJoinStatus",
+        args: [gameId, address],
+      });
+
+      const [hasPending, isDecrypted, isRegistered] = result as [boolean, boolean, boolean];
+
+      const info: PendingJoinInfo = {
+        gameId,
+        hasPending,
+        isDecrypted,
+        isRegistered,
+      };
+
+      setStatus(info);
+      return info;
+    } catch (err) {
+      console.error("Error checking join status:", err);
+      setStatus(null);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [publicClient, contractAddress, address, gameId]);
+
+  // Check status on mount and when dependencies change
+  useEffect(() => {
+    checkStatus();
+  }, [checkStatus]);
+
+  return {
+    status,
+    isLoading,
+    refetch: checkStatus,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Hook: useCompleteJoinOnly - Complete a pending join request (retry step 2)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export function useCompleteJoinOnly() {
+  const publicClient = usePublicClient();
+  const { address, chain } = useAccount();
+  const contractAddress = useContractAddress();
+  const { addGame } = useSecretSantaStore();
+  const { writeContractAsync, isPending } = useWriteContract();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const finalizeGame = useCallback(
+  const completeJoin = useCallback(
     async (gameId: bigint) => {
-      if (!contractAddress) {
-        setError("Wrong network");
+      if (!contractAddress || !publicClient || !chain || !address) {
+        setError("Wallet not connected or wrong network");
         return null;
       }
 
       setError(null);
+      setIsSuccess(false);
+      setIsLoading(true);
 
       try {
+        // First check if we have a pending join that's ready
+        const status = await publicClient.readContract({
+          address: contractAddress,
+          abi: SECRET_SANTA_ABI,
+          functionName: "getJoinStatus",
+          args: [gameId, address],
+        });
+
+        const [hasPending, isDecrypted, isRegistered] = status as [boolean, boolean, boolean];
+
+        if (isRegistered) {
+          setError("Already registered in this game");
+          setIsLoading(false);
+          return null;
+        }
+
+        if (!hasPending) {
+          setError("No pending join request found");
+          setIsLoading(false);
+          return null;
+        }
+
+        if (!isDecrypted) {
+          setError("Password verification not yet complete. Please wait and try again.");
+          setIsLoading(false);
+          return null;
+        }
+
+        // Ready to complete!
+        const hash = await writeContractAsync({
+          address: contractAddress,
+          abi: SECRET_SANTA_ABI,
+          functionName: "completeJoinGame",
+          args: [gameId],
+        });
+
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+        if (receipt.status === "success") {
+          // Fetch game info and save
+          const gameInfo = await publicClient.readContract({
+            address: contractAddress,
+            abi: SECRET_SANTA_ABI,
+            functionName: "getGame",
+            args: [gameId],
+          });
+
+          addGame({
+            gameId: gameId.toString(),
+            creator: gameInfo.creator as string,
+            name: gameInfo.name,
+            createdAt: Number(gameInfo.createdAt),
+            chainId: chain.id,
+            joinedAt: Date.now(),
+          });
+
+          setIsSuccess(true);
+          return hash;
+        } else {
+          setError("Transaction failed");
+          return null;
+        }
+      } catch (err) {
+        setError(parseError(err));
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [contractAddress, publicClient, chain, address, writeContractAsync, addGame]
+  );
+
+  const reset = useCallback(() => {
+    setError(null);
+    setIsSuccess(false);
+  }, []);
+
+  return {
+    completeJoin,
+    reset,
+    isLoading: isPending || isLoading,
+    isSuccess,
+    error,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Hook: useFinalizeGame - Finalize a game (creator only)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export function useFinalizeGame() {
+  const publicClient = usePublicClient();
+  const contractAddress = useContractAddress();
+  const { writeContractAsync, data: txHash, isPending } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+  const [error, setError] = useState<string | null>(null);
+  const [isSimulating, setIsSimulating] = useState(false);
+
+  const finalizeGame = useCallback(
+    async (gameId: bigint) => {
+      if (!contractAddress || !publicClient) {
+        setError("Wrong network or not connected");
+        return null;
+      }
+
+      setError(null);
+      setIsSimulating(true);
+
+      try {
+        // First simulate the transaction to catch errors before sending
+        await publicClient.simulateContract({
+          address: contractAddress,
+          abi: SECRET_SANTA_ABI,
+          functionName: "finalizeGame",
+          args: [gameId],
+        });
+
+        setIsSimulating(false);
+
         const hash = await writeContractAsync({
           address: contractAddress,
           abi: SECRET_SANTA_ABI,
@@ -607,17 +798,20 @@ export function useFinalizeGame() {
 
         return hash;
       } catch (err) {
-        setError(parseError(err));
+        setIsSimulating(false);
+        const errorMsg = parseError(err);
+        console.error("FinalizeGame error:", err);
+        setError(errorMsg);
         return null;
       }
     },
-    [contractAddress, writeContractAsync]
+    [contractAddress, publicClient, writeContractAsync]
   );
 
   return {
     finalizeGame,
     txHash,
-    isLoading: isPending || isConfirming,
+    isLoading: isSimulating || isPending || isConfirming,
     isSuccess,
     error,
   };
