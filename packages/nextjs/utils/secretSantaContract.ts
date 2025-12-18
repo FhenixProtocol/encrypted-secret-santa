@@ -1,7 +1,7 @@
 // Secret Santa Contract - deployed on Arbitrum Sepolia
 // TODO: Update this address after deploying the updated contract with name support
 export const CONTRACT_ADDRESS =
-  "0x78a8fe48995bC963596F7175B6bECa66fE075142" as const;
+  "0x64bd6AB8Bcee6E0D1C4B1AAFAd5B4fcF9A8ED4Cf" as const;
 
 // Game states
 export enum GameState {
