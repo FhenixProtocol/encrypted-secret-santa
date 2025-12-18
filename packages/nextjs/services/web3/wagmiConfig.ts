@@ -4,8 +4,9 @@ import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import {
   rabbyWallet,
   metaMaskWallet,
-  coinbaseWallet,
   walletConnectWallet,
+  rainbowWallet,
+  trustWallet,
   injectedWallet,
 } from "@rainbow-me/rainbowkit/wallets";
 import { arbitrumSepolia } from "wagmi/chains";
@@ -20,10 +21,11 @@ export const config = getDefaultConfig({
     {
       groupName: "Popular",
       wallets: [
-        rabbyWallet,
         metaMaskWallet,
-        coinbaseWallet,
         walletConnectWallet,
+        rainbowWallet,
+        trustWallet,
+        rabbyWallet,
         injectedWallet,
       ],
     },

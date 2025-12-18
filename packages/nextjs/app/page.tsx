@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Snowflake, Lock, Plus, UserPlus } from "lucide-react";
+import { Snowflake, Lock, Plus, UserPlus, HelpCircle, Droplets } from "lucide-react";
 import { WalletCard } from "@/components/WalletCard";
+import { HowToPlayModal } from "@/components/HowToPlayModal";
 import {
   CreateGameForm,
   JoinGameForm,
@@ -39,6 +40,7 @@ export default function Home() {
   const [selectedGame, setSelectedGame] = useState<GameInfo | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeCard, setActiveCard] = useState<"create" | "join" | null>(null);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   const handleGameSelect = (game: GameInfo) => {
     setSelectedGame(game);
@@ -121,7 +123,25 @@ export default function Home() {
         {/* Header - Logo and Wallet */}
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-2"></div>
-          <WalletCard />
+          <div className="flex items-center gap-2">
+            <a
+              href="https://ethglobal.com/faucet/arbitrum-sepolia-421614"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-all text-white text-sm font-medium"
+            >
+              <Droplets className="w-4 h-4" />
+              <span className="hidden sm:inline">Faucet</span>
+            </a>
+            <button
+              onClick={() => setShowHowToPlay(true)}
+              className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-all text-white text-sm font-medium"
+            >
+              <HelpCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">How to Play</span>
+            </button>
+            <WalletCard />
+          </div>
         </header>
 
         {/* Title - Compact */}
@@ -235,6 +255,12 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* How to Play Modal */}
+      <HowToPlayModal
+        isOpen={showHowToPlay}
+        onClose={() => setShowHowToPlay(false)}
+      />
     </div>
   );
 }
