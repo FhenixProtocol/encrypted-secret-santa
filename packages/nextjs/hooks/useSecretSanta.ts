@@ -781,10 +781,11 @@ export function useFinalizeGame() {
   const publicClient = usePublicClient();
   const { address } = useAccount();
   const contractAddress = useContractAddress();
-  const { writeContractAsync, data: txHash, isPending } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+  const { writeContractAsync, isPending } = useWriteContract();
   const [error, setError] = useState<string | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const finalizeGame = useCallback(
     async (gameId: bigint) => {
@@ -794,6 +795,7 @@ export function useFinalizeGame() {
       }
 
       setError(null);
+      setIsSuccess(false);
       setIsSimulating(true);
 
       try {
@@ -815,9 +817,21 @@ export function useFinalizeGame() {
           args: [gameId],
         });
 
-        return hash;
+        // Wait for transaction confirmation
+        setIsConfirming(true);
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        setIsConfirming(false);
+
+        if (receipt.status === "success") {
+          setIsSuccess(true);
+          return hash;
+        } else {
+          setError("Transaction failed");
+          return null;
+        }
       } catch (err) {
         setIsSimulating(false);
+        setIsConfirming(false);
         const errorMsg = parseError(err);
         console.error("FinalizeGame error:", err);
         setError(errorMsg);
@@ -829,7 +843,6 @@ export function useFinalizeGame() {
 
   return {
     finalizeGame,
-    txHash,
     isLoading: isSimulating || isPending || isConfirming,
     isSuccess,
     error,
@@ -841,19 +854,22 @@ export function useFinalizeGame() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function useRevealGame() {
+  const publicClient = usePublicClient();
   const contractAddress = useContractAddress();
-  const { writeContractAsync, data: txHash, isPending } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+  const { writeContractAsync, isPending } = useWriteContract();
   const [error, setError] = useState<string | null>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const revealGame = useCallback(
     async (gameId: bigint) => {
-      if (!contractAddress) {
+      if (!contractAddress || !publicClient) {
         setError("Wrong network");
         return null;
       }
 
       setError(null);
+      setIsSuccess(false);
 
       try {
         const hash = await writeContractAsync({
@@ -863,18 +879,29 @@ export function useRevealGame() {
           args: [gameId],
         });
 
-        return hash;
+        // Wait for transaction confirmation
+        setIsConfirming(true);
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        setIsConfirming(false);
+
+        if (receipt.status === "success") {
+          setIsSuccess(true);
+          return hash;
+        } else {
+          setError("Transaction failed");
+          return null;
+        }
       } catch (err) {
+        setIsConfirming(false);
         setError(parseError(err));
         return null;
       }
     },
-    [contractAddress, writeContractAsync]
+    [contractAddress, publicClient, writeContractAsync]
   );
 
   return {
     revealGame,
-    txHash,
     isLoading: isPending || isConfirming,
     isSuccess,
     error,
