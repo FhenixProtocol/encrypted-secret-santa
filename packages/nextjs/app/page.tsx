@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Snowflake, Lock, Plus, UserPlus, HelpCircle, Droplets } from "lucide-react";
+import {
+  Snowflake,
+  Lock,
+  Plus,
+  UserPlus,
+  HelpCircle,
+  Droplets,
+} from "lucide-react";
 import { WalletCard } from "@/components/WalletCard";
 import { HowToPlayModal } from "@/components/HowToPlayModal";
 import {
@@ -125,7 +132,7 @@ export default function Home() {
           <div className="flex items-center gap-2"></div>
           <div className="flex items-center gap-2">
             <a
-              href="https://ethglobal.com/faucet/arbitrum-sepolia-421614"
+              href="https://www.alchemy.com/faucets/arbitrum-sepolia"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-all text-white text-sm font-medium"
