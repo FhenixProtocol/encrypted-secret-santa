@@ -230,6 +230,7 @@ export function useCreateGame() {
   const { isInitialized } = useCofheStore();
   const { addGame } = useSecretSantaStore();
   const { writeContractAsync, data: txHash, isPending } = useWriteContract();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -246,6 +247,12 @@ export function useCreateGame() {
         return null;
       }
 
+      // Prevent multiple submissions
+      if (isSubmitting) {
+        return null;
+      }
+
+      setIsSubmitting(true);
       setError(null);
       setIsSuccess(false);
 
@@ -322,20 +329,22 @@ export function useCreateGame() {
           }
         }
 
+        setIsSubmitting(false);
         return hash;
       } catch (err) {
+        setIsSubmitting(false);
         setIsConfirming(false);
         setError(parseError(err));
         return null;
       }
     },
-    [contractAddress, address, chain, isInitialized, writeContractAsync, publicClient, addGame]
+    [contractAddress, address, chain, isInitialized, isSubmitting, writeContractAsync, publicClient, addGame]
   );
 
   return {
     createGame,
     txHash,
-    isLoading: isPending || isConfirming,
+    isLoading: isSubmitting || isPending || isConfirming,
     isSuccess,
     error,
   };
