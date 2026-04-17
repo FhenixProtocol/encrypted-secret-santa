@@ -1,4 +1,4 @@
 {
   "installCommand": "bun install",
-  "buildCommand": "bun run --filter nextjs build"
+  "buildCommand": "cd packages/nextjs && bun run build"
 }
