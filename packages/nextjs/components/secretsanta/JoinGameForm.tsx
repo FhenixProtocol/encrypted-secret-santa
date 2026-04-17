@@ -29,7 +29,7 @@ interface JoinGameFormProps {
 const stepMessages: Record<JoinStep, string> = {
   idle: "",
   requesting: "Submitting join request...",
-  waiting: "Verifying password on-chain...",
+  decrypting: "Decrypting password match off-chain...",
   completing: "Completing registration...",
   done: "Successfully joined!",
   error: "",
@@ -68,15 +68,10 @@ export const JoinGameForm = ({ onSuccess }: JoinGameFormProps) => {
     error: retryError,
   } = useCompleteJoinOnly();
 
-  // Check if there's a pending join ready to complete
+  // In the new flow a "pending" join exists only if the client didn't complete step 2.
+  // Retrying kicks off decryptForTx + completeJoinGame again.
   const hasPendingJoinReady =
-    pendingStatus?.hasPending &&
-    pendingStatus?.isDecrypted &&
-    !pendingStatus?.isRegistered;
-  const hasPendingJoinWaiting =
-    pendingStatus?.hasPending &&
-    !pendingStatus?.isDecrypted &&
-    !pendingStatus?.isRegistered;
+    pendingStatus?.hasPending && !pendingStatus?.registered;
 
   // Reset form on success (either normal join or retry)
   useEffect(() => {
@@ -259,32 +254,6 @@ export const JoinGameForm = ({ onSuccess }: JoinGameFormProps) => {
             </div>
           )}
 
-          {/* Pending join request - still waiting for decryption */}
-          {hasPendingJoinWaiting && !isProcessing && (
-            <div className="p-3 bg-yellow-100/50 border border-yellow-300 rounded-lg">
-              <div className="flex items-start gap-3">
-                <Loader2 className="w-5 h-5 text-yellow-600 animate-spin flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm text-santa-deepRed font-medium">
-                    Join request pending...
-                  </p>
-                  <p className="text-xs text-santa-deepRed/60 mt-1">
-                    Password is being verified on-chain. This may take a few
-                    seconds.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => refetchPendingStatus()}
-                    className="mt-2 text-xs text-fhenix-purple hover:text-fhenix-purple/80 flex items-center gap-1"
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                    Check status
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Retry error */}
           {retryError && (
             <div className="p-3 bg-pastel-coral/30 border border-pastel-coral rounded-lg">
@@ -319,10 +288,10 @@ export const JoinGameForm = ({ onSuccess }: JoinGameFormProps) => {
                   <p className="text-sm text-santa-deepRed font-medium">
                     {stepMessages[step]}
                   </p>
-                  {step === "waiting" && (
+                  {step === "decrypting" && (
                     <p className="text-xs text-santa-deepRed/60 mt-1">
-                      This may take a few seconds while FHE decryption
-                      completes...
+                      Requesting a signed decryption from the Threshold
+                      Network...
                     </p>
                   )}
                 </div>
@@ -380,7 +349,7 @@ export const JoinGameForm = ({ onSuccess }: JoinGameFormProps) => {
             {isLoading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                {step === "waiting" ? "Verifying..." : "Joining..."}
+                {step === "decrypting" ? "Decrypting..." : "Joining..."}
               </>
             ) : (
               <>

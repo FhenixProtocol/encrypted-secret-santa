@@ -1,7 +1,7 @@
 // Secret Santa Contract - deployed on Arbitrum Sepolia
-// TODO: Update this address after deploying the updated contract with name support
+// TODO: Update this address after redeploying the post-migration contract
 export const CONTRACT_ADDRESS =
-  "0xEf021E90f4409f6f37d5fd0947dCBD10a5A76393" as const;
+  "0x1bEF3b6F80e785eEe3934a87bB0b4d3365609b83" as const;
 
 // Game states
 export enum GameState {
@@ -27,20 +27,19 @@ export interface GameInfo {
   hasPassword: boolean;
 }
 
-// Join status from getJoinStatus
+// Join status from getJoinStatus (post-migration)
 export interface JoinStatus {
   hasPending: boolean;
-  isDecrypted: boolean;
-  isRegistered: boolean;
+  registered: boolean;
+  ctHash: `0x${string}`;
 }
 
-// Simplified SecretSanta ABI (single contract with password support)
 export const SECRET_SANTA_ABI = [
-  // Custom Errors
+  // Errors
   { inputs: [], name: "AlreadyRegistered", type: "error" },
-  { inputs: [], name: "DecryptionNotReady", type: "error" },
   { inputs: [], name: "GameNotFound", type: "error" },
   { inputs: [], name: "GameNotStarted", type: "error" },
+  { inputs: [], name: "InvalidDecryptionProof", type: "error" },
   {
     inputs: [
       { internalType: "uint8", name: "got", type: "uint8" },
@@ -98,45 +97,6 @@ export const SECRET_SANTA_ABI = [
         name: "gameId",
         type: "uint256",
       },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "player",
-        type: "address",
-      },
-      { indexed: false, internalType: "string", name: "name", type: "string" },
-    ],
-    name: "PlayerJoined",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "gameId",
-        type: "uint256",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "player",
-        type: "address",
-      },
-    ],
-    name: "JoinRequested",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "gameId",
-        type: "uint256",
-      },
     ],
     name: "GameFinalized",
     type: "event",
@@ -154,12 +114,159 @@ export const SECRET_SANTA_ABI = [
     name: "GameRevealed",
     type: "event",
   },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "gameId",
+        type: "uint256",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "player",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "bytes32",
+        name: "ctHash",
+        type: "bytes32",
+      },
+    ],
+    name: "JoinRequested",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "gameId",
+        type: "uint256",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "player",
+        type: "address",
+      },
+      { indexed: false, internalType: "string", name: "name", type: "string" },
+    ],
+    name: "PlayerJoined",
+    type: "event",
+  },
+
+  // Write functions
+  {
+    inputs: [
+      { internalType: "uint256", name: "gameId", type: "uint256" },
+      { internalType: "bool", name: "matched", type: "bool" },
+      { internalType: "bytes", name: "decryptionProof", type: "bytes" },
+    ],
+    name: "completeJoinGame",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "string", name: "name", type: "string" },
+      { internalType: "string", name: "creatorName", type: "string" },
+      {
+        components: [
+          { internalType: "uint256", name: "ctHash", type: "uint256" },
+          { internalType: "uint8", name: "securityZone", type: "uint8" },
+          { internalType: "uint8", name: "utype", type: "uint8" },
+          { internalType: "bytes", name: "signature", type: "bytes" },
+        ],
+        internalType: "struct InEuint32",
+        name: "creatorEntropy",
+        type: "tuple",
+      },
+      {
+        components: [
+          { internalType: "uint256", name: "ctHash", type: "uint256" },
+          { internalType: "uint8", name: "securityZone", type: "uint8" },
+          { internalType: "uint8", name: "utype", type: "uint8" },
+          { internalType: "bytes", name: "signature", type: "bytes" },
+        ],
+        internalType: "struct InEuint32",
+        name: "password",
+        type: "tuple",
+      },
+      { internalType: "bool", name: "hasPassword", type: "bool" },
+    ],
+    name: "createGame",
+    outputs: [{ internalType: "uint256", name: "gameId", type: "uint256" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "gameId", type: "uint256" }],
+    name: "finalizeGame",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "gameId", type: "uint256" },
+      { internalType: "string", name: "playerName", type: "string" },
+      {
+        components: [
+          { internalType: "uint256", name: "ctHash", type: "uint256" },
+          { internalType: "uint8", name: "securityZone", type: "uint8" },
+          { internalType: "uint8", name: "utype", type: "uint8" },
+          { internalType: "bytes", name: "signature", type: "bytes" },
+        ],
+        internalType: "struct InEuint32",
+        name: "password",
+        type: "tuple",
+      },
+      {
+        components: [
+          { internalType: "uint256", name: "ctHash", type: "uint256" },
+          { internalType: "uint8", name: "securityZone", type: "uint8" },
+          { internalType: "uint8", name: "utype", type: "uint8" },
+          { internalType: "bytes", name: "signature", type: "bytes" },
+        ],
+        internalType: "struct InEuint32",
+        name: "userEntropy",
+        type: "tuple",
+      },
+    ],
+    name: "requestJoinGame",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "gameId", type: "uint256" }],
+    name: "revealGame",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
 
   // View functions
   {
     inputs: [],
     name: "gameCount",
     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "gameId", type: "uint256" },
+      { internalType: "uint256", name: "idx", type: "uint256" },
+    ],
+    name: "getDestination",
+    outputs: [{ internalType: "euint32", name: "", type: "bytes32" }],
     stateMutability: "view",
     type: "function",
   },
@@ -186,9 +293,37 @@ export const SECRET_SANTA_ABI = [
     type: "function",
   },
   {
+    inputs: [{ internalType: "address", name: "creator", type: "address" }],
+    name: "getGamesByCreator",
+    outputs: [{ internalType: "uint256[]", name: "", type: "uint256[]" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "player", type: "address" }],
+    name: "getGamesByPlayer",
+    outputs: [{ internalType: "uint256[]", name: "", type: "uint256[]" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "gameId", type: "uint256" },
+      { internalType: "address", name: "player", type: "address" },
+    ],
+    name: "getJoinStatus",
+    outputs: [
+      { internalType: "bool", name: "hasPending", type: "bool" },
+      { internalType: "bool", name: "registered", type: "bool" },
+      { internalType: "bytes32", name: "ctHash", type: "bytes32" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [{ internalType: "uint256", name: "gameId", type: "uint256" }],
-    name: "getParticipants",
-    outputs: [{ internalType: "address[]", name: "", type: "address[]" }],
+    name: "getMyTarget",
+    outputs: [{ internalType: "euint32", name: "", type: "bytes32" }],
     stateMutability: "view",
     type: "function",
   },
@@ -210,12 +345,16 @@ export const SECRET_SANTA_ABI = [
     type: "function",
   },
   {
-    inputs: [
-      { internalType: "uint256", name: "gameId", type: "uint256" },
-      { internalType: "address", name: "user", type: "address" },
-    ],
-    name: "isRegistered",
-    outputs: [{ internalType: "bool", name: "", type: "bool" }],
+    inputs: [{ internalType: "uint256", name: "gameId", type: "uint256" }],
+    name: "getParticipantNames",
+    outputs: [{ internalType: "string[]", name: "", type: "string[]" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "gameId", type: "uint256" }],
+    name: "getParticipants",
+    outputs: [{ internalType: "address[]", name: "", type: "address[]" }],
     stateMutability: "view",
     type: "function",
   },
@@ -230,37 +369,12 @@ export const SECRET_SANTA_ABI = [
     type: "function",
   },
   {
-    inputs: [{ internalType: "uint256", name: "gameId", type: "uint256" }],
-    name: "getParticipantNames",
-    outputs: [{ internalType: "string[]", name: "", type: "string[]" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
     inputs: [
       { internalType: "uint256", name: "gameId", type: "uint256" },
-      { internalType: "address", name: "player", type: "address" },
+      { internalType: "address", name: "user", type: "address" },
     ],
-    name: "getJoinStatus",
-    outputs: [
-      { internalType: "bool", name: "hasPending", type: "bool" },
-      { internalType: "bool", name: "isDecrypted", type: "bool" },
-      { internalType: "bool", name: "isRegistered", type: "bool" },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "creator", type: "address" }],
-    name: "getGamesByCreator",
-    outputs: [{ internalType: "uint256[]", name: "", type: "uint256[]" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "player", type: "address" }],
-    name: "getGamesByPlayer",
-    outputs: [{ internalType: "uint256[]", name: "", type: "uint256[]" }],
+    name: "isRegistered",
+    outputs: [{ internalType: "bool", name: "", type: "bool" }],
     stateMutability: "view",
     type: "function",
   },
@@ -312,111 +426,6 @@ export const SECRET_SANTA_ABI = [
       },
     ],
     stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "gameId", type: "uint256" }],
-    name: "getMyTarget",
-    outputs: [{ internalType: "euint32", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      { internalType: "uint256", name: "gameId", type: "uint256" },
-      { internalType: "uint256", name: "idx", type: "uint256" },
-    ],
-    name: "getDestination",
-    outputs: [{ internalType: "euint32", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-
-  // Write functions
-  {
-    inputs: [
-      { internalType: "string", name: "name", type: "string" },
-      { internalType: "string", name: "creatorName", type: "string" },
-      {
-        components: [
-          { internalType: "uint256", name: "ctHash", type: "uint256" },
-          { internalType: "uint8", name: "securityZone", type: "uint8" },
-          { internalType: "uint8", name: "utype", type: "uint8" },
-          { internalType: "bytes", name: "signature", type: "bytes" },
-        ],
-        internalType: "struct InEuint32",
-        name: "creatorEntropy",
-        type: "tuple",
-      },
-      {
-        components: [
-          { internalType: "uint256", name: "ctHash", type: "uint256" },
-          { internalType: "uint8", name: "securityZone", type: "uint8" },
-          { internalType: "uint8", name: "utype", type: "uint8" },
-          { internalType: "bytes", name: "signature", type: "bytes" },
-        ],
-        internalType: "struct InEuint32",
-        name: "password",
-        type: "tuple",
-      },
-      { internalType: "bool", name: "hasPassword", type: "bool" },
-    ],
-    name: "createGame",
-    outputs: [{ internalType: "uint256", name: "gameId", type: "uint256" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      { internalType: "uint256", name: "gameId", type: "uint256" },
-      { internalType: "string", name: "playerName", type: "string" },
-      {
-        components: [
-          { internalType: "uint256", name: "ctHash", type: "uint256" },
-          { internalType: "uint8", name: "securityZone", type: "uint8" },
-          { internalType: "uint8", name: "utype", type: "uint8" },
-          { internalType: "bytes", name: "signature", type: "bytes" },
-        ],
-        internalType: "struct InEuint32",
-        name: "password",
-        type: "tuple",
-      },
-      {
-        components: [
-          { internalType: "uint256", name: "ctHash", type: "uint256" },
-          { internalType: "uint8", name: "securityZone", type: "uint8" },
-          { internalType: "uint8", name: "utype", type: "uint8" },
-          { internalType: "bytes", name: "signature", type: "bytes" },
-        ],
-        internalType: "struct InEuint32",
-        name: "userEntropy",
-        type: "tuple",
-      },
-    ],
-    name: "requestJoinGame",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "gameId", type: "uint256" }],
-    name: "completeJoinGame",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "gameId", type: "uint256" }],
-    name: "finalizeGame",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "gameId", type: "uint256" }],
-    name: "revealGame",
-    outputs: [],
-    stateMutability: "nonpayable",
     type: "function",
   },
 ] as const;

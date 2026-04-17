@@ -1,277 +1,179 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-  useCallback,
-  useSyncExternalStore,
-} from "react";
-import {
-  Encryptable,
-  Environment,
-  FheTypes,
-  Permit,
-  PermitOptions,
-  cofhejs,
-  permitStore,
-} from "cofhejs/web";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { Encryptable, FheTypes } from "@cofhe/sdk";
+import type { Permit } from "@cofhe/sdk/permits";
 import { Address } from "viem";
 import { useAccount, usePublicClient, useWalletClient } from "wagmi";
+import { cofheClient, getCofheClient } from "@/services/cofhe-client";
 import { useCofheStore } from "@/services/store/cofheStore";
 
-interface CofheConfig {
-  environment: Environment;
-  coFheUrl?: string;
-  verifierUrl?: string;
-  thresholdNetworkUrl?: string;
-  ignoreErrors?: boolean;
-  generatePermit?: boolean;
-}
-
-export function useCofhe(config?: Partial<CofheConfig>) {
+export function useCofhe() {
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
   const { isConnected } = useAccount();
-  const {
-    isInitialized: globalIsInitialized,
-    setIsInitialized: setGlobalIsInitialized,
-  } = useCofheStore();
+  const { setIsInitialized: setGlobalIsInitialized } = useCofheStore();
 
   const chainId = publicClient?.chain?.id;
   const accountAddress = walletClient?.account?.address;
 
   const [isInitializing, setIsInitializing] = useState(false);
-  const [isGeneratingPermit, setIsGeneratingPermit] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [permit, setPermit] = useState<Permit | undefined>(undefined);
 
-  // Add checks to ensure we're in a browser environment
   const isBrowser = typeof window !== "undefined";
 
-  // Reset initialization when chain changes
+  // Connect when wallet is ready; reconnect on chain/account change.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    setGlobalIsInitialized(false);
-  }, [chainId, accountAddress, setGlobalIsInitialized]);
+    if (!isBrowser || !isConnected || !publicClient || !walletClient) {
+      setGlobalIsInitialized(false);
+      return;
+    }
 
-  // Initialize when wallet is connected
-  useEffect(() => {
-    // Skip initialization if not in browser or wallet not connected
-    if (!isBrowser || !isConnected) return;
+    let cancelled = false;
+    setIsInitializing(true);
+    setError(null);
 
-    const initialize = async () => {
-      if (
-        globalIsInitialized ||
-        isInitializing ||
-        !publicClient ||
-        !walletClient
-      )
-        return;
-      try {
-        setIsInitializing(true);
+    cofheClient
+      .connect(publicClient, walletClient)
+      .then(() => {
+        if (cancelled) return;
+        setGlobalIsInitialized(true);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const e = err instanceof Error ? err : new Error(String(err));
+        setError(e);
+        setGlobalIsInitialized(false);
+      })
+      .finally(() => {
+        if (!cancelled) setIsInitializing(false);
+      });
 
-        const defaultConfig = {
-          verifierUrl: undefined,
-          coFheUrl: undefined,
-          thresholdNetworkUrl: undefined,
-          ignoreErrors: false,
-          generatePermit: false,
-        };
-
-        // Merge default config with user-provided config
-        const mergedConfig = { ...defaultConfig, ...config };
-        const result = await cofhejs.initializeWithViem({
-          viemClient: publicClient,
-          viemWalletClient: walletClient,
-          environment: "TESTNET",
-          verifierUrl: mergedConfig.verifierUrl,
-          coFheUrl: mergedConfig.coFheUrl,
-          thresholdNetworkUrl: mergedConfig.thresholdNetworkUrl,
-          ignoreErrors: mergedConfig.ignoreErrors,
-          generatePermit: mergedConfig.generatePermit,
-        });
-
-        if (result.success) {
-          console.log("Cofhe initialized successfully");
-          setGlobalIsInitialized(true);
-          setPermit(result.data);
-          setError(null);
-        } else {
-          setError(new Error(result.error.message || String(result.error)));
-        }
-      } catch (err) {
-        console.error("Failed to initialize Cofhe:", err);
-        setError(
-          err instanceof Error
-            ? err
-            : new Error("Unknown error initializing Cofhe")
-        );
-      } finally {
-        setIsInitializing(false);
-      }
+    return () => {
+      cancelled = true;
     };
+  }, [isConnected, publicClient, walletClient, chainId, accountAddress, isBrowser, setGlobalIsInitialized]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
-    initialize();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    isConnected,
-    walletClient,
-    publicClient,
-    config,
-    chainId,
-    isInitializing,
-    accountAddress,
-    globalIsInitialized,
-    setGlobalIsInitialized,
-  ]);
-
-  const createPermit = useCallback(
-    async (permitOptions?: PermitOptions) => {
-      if (!globalIsInitialized || !accountAddress) {
-        return {
-          success: false,
-          error: "CoFHE not initialized or wallet not connected",
-        };
-      }
-
-      try {
-        setIsGeneratingPermit(true);
-        setError(null);
-
-        const result = await cofhejs.createPermit(permitOptions);
-
-        if (result.success) {
-          console.log("Permit generated successfully");
-          setPermit(result.data);
-          setError(null);
-          return result;
-        } else {
-          setError(new Error(result.error.message || String(result.error)));
-          return result;
-        }
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error
-            ? err.message
-            : "Unknown error generating permit";
-        const errorResult = {
-          success: false as const,
-          error: { message: errorMessage },
-        };
-        setError(new Error(errorMessage));
-        return errorResult;
-      } finally {
-        setIsGeneratingPermit(false);
-      }
-    },
-    [globalIsInitialized, accountAddress]
-  );
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { createPermit: _, ...cofhejsWithoutCreatePermit } = cofhejs;
+  const isInitialized = useCofheConnected();
 
   return {
-    isInitialized: globalIsInitialized,
+    isInitialized,
     isInitializing,
-    isGeneratingPermit,
     error,
-    permit,
-    createPermit,
-    ...cofhejsWithoutCreatePermit,
     FheTypes,
     Encryptable,
   };
 }
 
-// Helper to get initial state without triggering cascading renders
-const getInitializedState = () => {
-  const state = cofhejs.store.getState();
-  return (
-    state.providerInitialized &&
-    state.signerInitialized &&
-    state.fheKeysInitialized
-  );
+// Subscribe to CoFHE client connection state
+const getConnectionSnapshot = () => {
+  try {
+    return getCofheClient().getSnapshot();
+  } catch {
+    return null;
+  }
 };
 
-const getAccountState = () => cofhejs.store.getState().account;
-
-const getActivePermitHashState = () =>
-  permitStore.store.getState().activePermitHash as unknown as Record<
-    Address,
-    string | undefined
-  >;
-
-export const useCofhejsInitialized = () => {
-  const initialized = useSyncExternalStore(
-    cofhejs.store.subscribe,
-    getInitializedState,
-    () => false // Server snapshot
-  );
-  return initialized;
+const subscribeConnection = (listener: () => void) => {
+  try {
+    return getCofheClient().subscribe(listener);
+  } catch {
+    return () => {};
+  }
 };
 
-export const useCofhejsAccount = () => {
-  const account = useSyncExternalStore(
-    cofhejs.store.subscribe,
-    getAccountState,
-    () => null // Server snapshot
+export const useCofheConnected = () => {
+  const state = useSyncExternalStore(
+    subscribeConnection,
+    getConnectionSnapshot,
+    () => null
   );
-  return account;
+  return !!state?.connected;
 };
 
-export const useCofhejsActivePermitHashes = () => {
-  const activePermitHash = useSyncExternalStore(
-    permitStore.store.subscribe,
-    getActivePermitHashState,
-    () => ({}) as Record<Address, string | undefined> // Server snapshot
+export const useCofheAccount = () => {
+  const state = useSyncExternalStore(
+    subscribeConnection,
+    getConnectionSnapshot,
+    () => null
   );
-  return useMemo(() => activePermitHash, [activePermitHash]);
+  return state?.account ?? null;
 };
 
-export const useCofhejsActivePermitHash = () => {
-  const account = useCofhejsAccount();
-  const activePermitHashes = useCofhejsActivePermitHashes();
+// Subscribe to permit store
+const getPermitsSnapshot = () => {
+  try {
+    return getCofheClient().permits.getSnapshot();
+  } catch {
+    return null;
+  }
+};
+
+const subscribePermits = (listener: () => void) => {
+  try {
+    return getCofheClient().permits.subscribe(listener);
+  } catch {
+    return () => {};
+  }
+};
+
+export const useCofheActivePermit = (): Permit | undefined => {
+  const connected = useCofheConnected();
+  const { address, chainId } = useAccount();
+  // Drive re-renders off the permits store snapshot
+  useSyncExternalStore(subscribePermits, getPermitsSnapshot, () => null);
 
   return useMemo(() => {
-    if (!account) return undefined;
-    return activePermitHashes[account as Address];
-  }, [account, activePermitHashes]);
+    if (!connected || !address || !chainId) return undefined;
+    try {
+      return getCofheClient().permits.getActivePermit(chainId, address);
+    } catch {
+      return undefined;
+    }
+  }, [connected, address, chainId]);
 };
 
-export const useCofhejsActivePermit = () => {
-  const { chainId } = useAccount();
-  const account = useCofhejsAccount();
-  const initialized = useCofhejsInitialized();
-  const activePermitHash = useCofhejsActivePermitHash();
+export const useCofheActivePermitHash = (): string | undefined => {
+  const connected = useCofheConnected();
+  const { address, chainId } = useAccount();
+  useSyncExternalStore(subscribePermits, getPermitsSnapshot, () => null);
 
   return useMemo(() => {
-    if (!account || !initialized) return undefined;
-    return permitStore.getPermit(
-      chainId?.toString(),
-      account,
-      activePermitHash
-    );
-  }, [account, initialized, activePermitHash, chainId]);
+    if (!connected || !address || !chainId) return undefined;
+    try {
+      return getCofheClient().permits.getActivePermitHash(chainId, address);
+    } catch {
+      return undefined;
+    }
+  }, [connected, address, chainId]);
 };
 
-export const useCofhejsAllPermits = () => {
-  const account = useCofhejsAccount();
-  const initialized = useCofhejsInitialized();
+export const useCofheAllPermits = (): Permit[] | undefined => {
+  const connected = useCofheConnected();
+  const { address, chainId } = useAccount();
+  useSyncExternalStore(subscribePermits, getPermitsSnapshot, () => null);
 
-  const getAllPermitsSnapshot = useCallback(() => {
-    if (!account || !initialized) return undefined;
-    const permitsFromStore = cofhejs.getAllPermits();
-    return Object.values(permitsFromStore?.data ?? {});
-  }, [account, initialized]);
-
-  const allPermits = useSyncExternalStore(
-    permitStore.store.subscribe,
-    getAllPermitsSnapshot,
-    () => undefined // Server snapshot
-  );
-
-  return allPermits;
+  return useMemo(() => {
+    if (!connected || !address || !chainId) return undefined;
+    try {
+      const permits = getCofheClient().permits.getPermits(chainId, address);
+      return Object.values(permits ?? {});
+    } catch {
+      return undefined;
+    }
+  }, [connected, address, chainId]);
 };
 
-// Export FheTypes directly for convenience
-export { FheTypes } from "cofhejs/web";
+// Per-address active permit map (preserves compatibility with old useCofhejsActivePermitHashes consumers)
+export const useCofheActivePermitHashes = (): Record<Address, string | undefined> => {
+  const activeHash = useCofheActivePermitHash();
+  const { address } = useAccount();
+  return useMemo(() => {
+    if (!address) return {} as Record<Address, string | undefined>;
+    return { [address as Address]: activeHash } as Record<Address, string | undefined>;
+  }, [address, activeHash]);
+};
+
+export { FheTypes, Encryptable } from "@cofhe/sdk";

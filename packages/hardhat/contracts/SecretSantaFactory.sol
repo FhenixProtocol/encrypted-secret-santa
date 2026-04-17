@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.25;
 
 import {FHE, euint32, ebool, InEuint32} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 
@@ -110,7 +110,7 @@ contract SecretSanta {
     );
 
     event PlayerJoined(uint256 indexed gameId, address indexed player, string name);
-    event JoinRequested(uint256 indexed gameId, address indexed player);
+    event JoinRequested(uint256 indexed gameId, address indexed player, bytes32 ctHash);
     event GameFinalized(uint256 indexed gameId);
     event GameRevealed(uint256 indexed gameId);
 
@@ -122,7 +122,7 @@ contract SecretSanta {
     error NotRegistrationPhase();
     error AlreadyRegistered();
     error NoPendingJoin();
-    error DecryptionNotReady();
+    error InvalidDecryptionProof();
     error InvalidPassword();
     error NotCreator();
     error NotActive();
@@ -207,16 +207,15 @@ contract SecretSanta {
             return;
         }
 
-        // Password protected - start async verification
+        // Password protected - compute match result and allow the joiner to decrypt it off-chain
         euint32 submittedPwd = FHE.asEuint32(password);
         ebool passwordMatch = FHE.eq(game.password, submittedPwd);
+        FHE.allowThis(passwordMatch);
+        FHE.allow(passwordMatch, msg.sender);
 
         // Store entropy as euint32 for later use
         euint32 storedEntropy = FHE.asEuint32(userEntropy);
         FHE.allowThis(storedEntropy);
-
-        // Request decryption of the match result
-        FHE.decrypt(passwordMatch);
 
         // Store pending join (overwrites any previous attempt)
         pendingJoins[gameId][msg.sender] = PendingJoin({
@@ -226,13 +225,19 @@ contract SecretSanta {
             exists: true
         });
 
-        emit JoinRequested(gameId, msg.sender);
+        emit JoinRequested(gameId, msg.sender, ebool.unwrap(passwordMatch));
     }
 
     /// @notice Complete joining a password-protected game (Step 2)
-    /// @dev Called after password verification decryption is ready
+    /// @dev Caller provides the decrypted match result + Threshold Network signature obtained off-chain
     /// @param gameId The ID of the game to join
-    function completeJoinGame(uint256 gameId) external {
+    /// @param matched Whether the submitted password matched the game password
+    /// @param decryptionProof Threshold Network signature over the decrypted result
+    function completeJoinGame(
+        uint256 gameId,
+        bool matched,
+        bytes calldata decryptionProof
+    ) external {
         if (gameId >= gameCount) revert GameNotFound();
         Game storage game = games[gameId];
 
@@ -241,9 +246,9 @@ contract SecretSanta {
 
         PendingJoin storage pending = pendingJoins[gameId][msg.sender];
 
-        // Get decrypted result
-        (bool matched, bool decrypted) = FHE.getDecryptResultSafe(pending.passwordMatch);
-        if (!decrypted) revert DecryptionNotReady();
+        // Verify the Threshold Network signature matches the stored ciphertext + claimed plaintext
+        bool valid = FHE.verifyDecryptResult(pending.passwordMatch, matched, decryptionProof);
+        if (!valid) revert InvalidDecryptionProof();
         if (!matched) revert InvalidPassword();
 
         // Password matched - add player using stored entropy and name
@@ -295,17 +300,17 @@ contract SecretSanta {
     /// @param gameId The game ID
     /// @param player The player address
     /// @return hasPending Whether there's a pending join request
-    /// @return isDecrypted Whether the password verification is complete
-    /// @return isRegistered Whether the player is already registered
+    /// @return registered Whether the player is already registered
+    /// @return ctHash The pending passwordMatch ctHash (zero if no pending join)
     function getJoinStatus(
         uint256 gameId,
         address player
-    ) external view returns (bool hasPending, bool isDecrypted, bool isRegistered) {
+    ) external view returns (bool hasPending, bool registered, bytes32 ctHash) {
         hasPending = pendingJoins[gameId][player].exists;
-        isRegistered = playerIndex[gameId][player] != 0;
+        registered = playerIndex[gameId][player] != 0;
 
         if (hasPending) {
-            (, isDecrypted) = FHE.getDecryptResultSafe(pendingJoins[gameId][player].passwordMatch);
+            ctHash = ebool.unwrap(pendingJoins[gameId][player].passwordMatch);
         }
     }
 

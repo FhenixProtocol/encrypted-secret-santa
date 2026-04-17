@@ -1,13 +1,7 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "hardhat-deploy";
+import "@cofhe/hardhat-plugin";
 import * as dotenv from "dotenv";
-
-// Optional: only import cofhe plugin if available
-try {
-  require("cofhe-hardhat-plugin");
-} catch {
-  console.log("cofhe-hardhat-plugin not available, skipping...");
-}
 
 dotenv.config();
 

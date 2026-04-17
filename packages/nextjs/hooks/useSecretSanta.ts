@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
-import { useAccount, usePublicClient, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { Encryptable, FheTypes, cofhejs } from "cofhejs/web";
+import { useState, useCallback, useEffect } from "react";
+import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { decodeEventLog } from "viem";
+import { Encryptable, FheTypes } from "@cofhe/sdk";
+import { getCofheClient } from "@/services/cofhe-client";
 import { useCofheStore } from "@/services/store/cofheStore";
 import { useSecretSantaStore } from "@/services/store/secretSantaStore";
 import {
@@ -21,27 +23,21 @@ import {
 function parseError(err: unknown): string {
   const message = err instanceof Error ? err.message : String(err);
 
-  // Common patterns to extract the main error
   const patterns = [
-    // User rejection
     /User rejected the request/i,
     /user rejected/i,
     /rejected by user/i,
-    // Contract errors
     /reverted with reason string ['"](.+?)['"]/i,
     /execution reverted: (.+?)(?:\n|$)/i,
     /reason: (.+?)(?:\n|$)/i,
-    // Custom errors from contract
     /InvalidPassword/i,
-    /DecryptionNotReady/i,
+    /InvalidDecryptionProof/i,
     /NoPendingJoin/i,
     /AlreadyRegistered/i,
     /NotRegistrationPhase/i,
     /GameNotFound/i,
     /PendingJoinExists/i,
-    // Insufficient funds
     /insufficient funds/i,
-    // Network errors
     /network error/i,
     /could not connect/i,
   ];
@@ -49,20 +45,16 @@ function parseError(err: unknown): string {
   for (const pattern of patterns) {
     const match = message.match(pattern);
     if (match) {
-      // Return the captured group if exists, otherwise the full match
       const result = match[1] || match[0];
-      // Clean up and capitalize first letter
       return result.charAt(0).toUpperCase() + result.slice(1);
     }
   }
 
-  // If no pattern matched, try to find "Details:" line
   const detailsMatch = message.match(/Details:\s*(.+?)(?:\n|$)/i);
   if (detailsMatch) {
     return detailsMatch[1].trim();
   }
 
-  // Fallback: return a generic message if the error is too long
   if (message.length > 100) {
     return "Transaction failed. Please try again.";
   }
@@ -76,7 +68,6 @@ function parseError(err: unknown): string {
 
 export function useContractAddress(): `0x${string}` | undefined {
   const { chain } = useAccount();
-  // Only Arbitrum Sepolia is supported
   if (chain?.id === 421614) {
     return CONTRACT_ADDRESS;
   }
@@ -84,7 +75,7 @@ export function useContractAddress(): `0x${string}` | undefined {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Hook: useGameInfo - Fetch a single game's info
+// Hook: useGameInfo
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function useGameInfo(gameId: bigint | null) {
@@ -134,7 +125,7 @@ export function useGameInfo(gameId: bigint | null) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Hook: useMyGames - Fetch games the user is participating in
+// Hook: useMyGames
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function useMyGames() {
@@ -155,7 +146,6 @@ export function useMyGames() {
     setError(null);
 
     try {
-      // Use the contract's getGamesByPlayer function
       const gameIds = await publicClient.readContract({
         address: contractAddress,
         abi: SECRET_SANTA_ABI,
@@ -168,7 +158,6 @@ export function useMyGames() {
         return [];
       }
 
-      // Fetch info for each game
       const myGames: GameInfo[] = [];
 
       for (const gameId of gameIds) {
@@ -191,7 +180,6 @@ export function useMyGames() {
           };
           myGames.push(game);
 
-          // Sync to local store
           addGame({
             gameId: game.gameId.toString(),
             creator: game.creator,
@@ -201,7 +189,6 @@ export function useMyGames() {
             joinedAt: Date.now(),
           });
         } catch {
-          // Skip games that fail to fetch
           continue;
         }
       }
@@ -220,7 +207,7 @@ export function useMyGames() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Hook: useCreateGame - Create a new Secret Santa game (with optional password)
+// Hook: useCreateGame
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function useCreateGame() {
@@ -247,41 +234,24 @@ export function useCreateGame() {
         return null;
       }
 
-      // Prevent multiple submissions
-      if (isSubmitting) {
-        return null;
-      }
+      if (isSubmitting) return null;
 
       setIsSubmitting(true);
       setError(null);
       setIsSuccess(false);
 
       try {
-        // Generate and encrypt entropy
         const entropy = generateEntropy();
-        console.log("Generated entropy:", entropy);
-
-        // Determine if we have a password
         const hasPassword = password !== undefined && password.length > 0;
         const passwordValue = hasPassword ? BigInt(hashPassword(password)) : BigInt(0);
 
-        // Encrypt both entropy and password
-        const encrypted = await cofhejs.encrypt([
-          Encryptable.uint32(entropy),
-          Encryptable.uint32(passwordValue),
-        ]);
-        console.log("Encryption result:", encrypted);
+        const [encryptedEntropy, encryptedPassword] = await getCofheClient()
+          .encryptInputs([
+            Encryptable.uint32(entropy),
+            Encryptable.uint32(passwordValue),
+          ])
+          .execute();
 
-        if (!encrypted.success || !encrypted.data) {
-          setError("Failed to encrypt data: " + (encrypted.error || "Unknown error"));
-          return null;
-        }
-
-        const encryptedEntropy = encrypted.data[0];
-        const encryptedPassword = encrypted.data[1];
-        console.log("Creating game with password:", hasPassword);
-
-        // Create the game
         const hash = await writeContractAsync({
           address: contractAddress,
           abi: SECRET_SANTA_ABI,
@@ -289,9 +259,7 @@ export function useCreateGame() {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           args: [gameName, creatorName, encryptedEntropy as any, encryptedPassword as any, hasPassword],
         });
-        console.log("Transaction hash:", hash);
 
-        // Wait for transaction confirmation
         setIsConfirming(true);
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
         setIsConfirming(false);
@@ -299,7 +267,6 @@ export function useCreateGame() {
         if (receipt.status === "success") {
           setIsSuccess(true);
 
-          // Try to save to local store (non-critical, don't fail if this errors)
           try {
             const gameCount = await publicClient.readContract({
               address: contractAddress,
@@ -351,14 +318,36 @@ export function useCreateGame() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Join Step type for tracking 2-step join process
+// Helper: extract ctHash from JoinRequested event in a tx receipt
 // ═══════════════════════════════════════════════════════════════════════════
 
-export type JoinStep = "idle" | "requesting" | "waiting" | "completing" | "done" | "error";
+function extractCtHashFromReceipt(
+  receiptLogs: readonly { address: string; topics: readonly `0x${string}`[]; data: `0x${string}` }[],
+  contractAddress: `0x${string}`
+): `0x${string}` | null {
+  for (const log of receiptLogs) {
+    if (log.address.toLowerCase() !== contractAddress.toLowerCase()) continue;
+    try {
+      const decoded = decodeEventLog({
+        abi: SECRET_SANTA_ABI,
+        data: log.data,
+        topics: log.topics as [`0x${string}`, ...`0x${string}`[]],
+      });
+      if (decoded.eventName === "JoinRequested") {
+        return (decoded.args as { ctHash: `0x${string}` }).ctHash;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Hook: useJoinGame - Join an existing game (2-step for password games)
+// Hook: useJoinGame — 2-step for password games, off-chain decrypt + verify
 // ═══════════════════════════════════════════════════════════════════════════
+
+export type JoinStep = "idle" | "requesting" | "decrypting" | "completing" | "done" | "error";
 
 export function useJoinGame() {
   const publicClient = usePublicClient();
@@ -371,27 +360,58 @@ export function useJoinGame() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentGameId, setCurrentGameId] = useState<bigint | null>(null);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Cleanup polling on unmount
-  useEffect(() => {
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-      }
-    };
-  }, []);
 
   const reset = useCallback(() => {
     setStep("idle");
     setError(null);
     setIsSuccess(false);
     setCurrentGameId(null);
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
   }, []);
+
+  const completeWithCtHash = useCallback(
+    async (gameId: bigint, ctHash: `0x${string}`, gameInfo: { creator: string; name: string; createdAt: bigint }) => {
+      if (!contractAddress || !publicClient || !chain || !address) return null;
+
+      setStep("decrypting");
+
+      const { decryptedValue, signature } = await getCofheClient()
+        .decryptForTx(ctHash)
+        .withPermit()
+        .execute();
+
+      setStep("completing");
+
+      const matched = decryptedValue !== BigInt(0);
+
+      const completeHash = await writeContractAsync({
+        address: contractAddress,
+        abi: SECRET_SANTA_ABI,
+        functionName: "completeJoinGame",
+        args: [gameId, matched, signature],
+      });
+
+      const completeReceipt = await publicClient.waitForTransactionReceipt({ hash: completeHash });
+
+      if (completeReceipt.status !== "success") {
+        throw new Error("Complete join transaction failed");
+      }
+
+      setIsSuccess(true);
+      setStep("done");
+
+      addGame({
+        gameId: gameId.toString(),
+        creator: gameInfo.creator,
+        name: gameInfo.name,
+        createdAt: Number(gameInfo.createdAt),
+        chainId: chain.id,
+        joinedAt: Date.now(),
+      });
+
+      return completeHash;
+    },
+    [contractAddress, publicClient, chain, address, writeContractAsync, addGame]
+  );
 
   const requestJoin = useCallback(
     async (gameId: bigint, playerName: string, password?: string) => {
@@ -413,7 +433,6 @@ export function useJoinGame() {
       setCurrentGameId(gameId);
 
       try {
-        // Check if game requires password
         const gameInfo = await publicClient.readContract({
           address: contractAddress,
           abi: SECRET_SANTA_ABI,
@@ -423,26 +442,16 @@ export function useJoinGame() {
 
         const gameHasPassword = gameInfo.hasPassword;
 
-        // Generate entropy and password hash
         const entropy = generateEntropy();
         const passwordValue = password ? BigInt(hashPassword(password)) : BigInt(0);
 
-        // Encrypt both
-        const encrypted = await cofhejs.encrypt([
-          Encryptable.uint32(passwordValue),
-          Encryptable.uint32(entropy),
-        ]);
+        const [encryptedPassword, encryptedEntropy] = await getCofheClient()
+          .encryptInputs([
+            Encryptable.uint32(passwordValue),
+            Encryptable.uint32(entropy),
+          ])
+          .execute();
 
-        if (!encrypted.success || !encrypted.data) {
-          setError("Failed to encrypt data");
-          setStep("error");
-          return null;
-        }
-
-        const encryptedPassword = encrypted.data[0];
-        const encryptedEntropy = encrypted.data[1];
-
-        // Request to join
         const hash = await writeContractAsync({
           address: contractAddress,
           abi: SECRET_SANTA_ABI,
@@ -451,7 +460,6 @@ export function useJoinGame() {
           args: [gameId, playerName, encryptedPassword as any, encryptedEntropy as any],
         });
 
-        // Wait for transaction
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
         if (receipt.status !== "success") {
@@ -462,7 +470,6 @@ export function useJoinGame() {
 
         // For public games, we're done immediately
         if (!gameHasPassword) {
-          // Save to local store
           addGame({
             gameId: gameId.toString(),
             creator: gameInfo.creator as string,
@@ -476,9 +483,19 @@ export function useJoinGame() {
           return hash;
         }
 
-        // For password games, start polling
-        setStep("waiting");
-        startPolling(gameId);
+        // Password-protected: extract ctHash from event, decrypt off-chain, submit completion
+        const ctHash = extractCtHashFromReceipt(receipt.logs, contractAddress);
+        if (!ctHash) {
+          setError("Could not locate JoinRequested event in receipt");
+          setStep("error");
+          return null;
+        }
+
+        await completeWithCtHash(gameId, ctHash, {
+          creator: gameInfo.creator as string,
+          name: gameInfo.name,
+          createdAt: gameInfo.createdAt,
+        });
 
         return hash;
       } catch (err) {
@@ -487,122 +504,29 @@ export function useJoinGame() {
         return null;
       }
     },
-    [contractAddress, address, chain, isInitialized, writeContractAsync, publicClient, addGame]
-  );
-
-  const startPolling = useCallback(
-    (gameId: bigint) => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-      }
-
-      pollingRef.current = setInterval(async () => {
-        if (!publicClient || !contractAddress || !address) return;
-
-        try {
-          const status = await publicClient.readContract({
-            address: contractAddress,
-            abi: SECRET_SANTA_ABI,
-            functionName: "getJoinStatus",
-            args: [gameId, address],
-          });
-
-          const [hasPending, isDecrypted, isRegistered] = status as [boolean, boolean, boolean];
-
-          if (isRegistered) {
-            // Already joined (shouldn't happen but handle it)
-            if (pollingRef.current) clearInterval(pollingRef.current);
-            setIsSuccess(true);
-            setStep("done");
-            return;
-          }
-
-          if (hasPending && isDecrypted) {
-            // Ready to complete
-            if (pollingRef.current) clearInterval(pollingRef.current);
-            completeJoin(gameId);
-          }
-        } catch (err) {
-          console.error("Polling error:", err);
-        }
-      }, 3000); // Poll every 3 seconds
-    },
-    [publicClient, contractAddress, address]
-  );
-
-  const completeJoin = useCallback(
-    async (gameId: bigint) => {
-      if (!contractAddress || !publicClient || !chain || !address) return;
-
-      setStep("completing");
-
-      try {
-        const hash = await writeContractAsync({
-          address: contractAddress,
-          abi: SECRET_SANTA_ABI,
-          functionName: "completeJoinGame",
-          args: [gameId],
-        });
-
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
-        if (receipt.status === "success") {
-          setIsSuccess(true);
-          setStep("done");
-
-          // Try to save to local store (non-critical)
-          try {
-            const gameInfo = await publicClient.readContract({
-              address: contractAddress,
-              abi: SECRET_SANTA_ABI,
-              functionName: "getGame",
-              args: [gameId],
-            });
-
-            addGame({
-              gameId: gameId.toString(),
-              creator: gameInfo.creator as string,
-              name: gameInfo.name,
-              createdAt: Number(gameInfo.createdAt),
-              chainId: chain.id,
-              joinedAt: Date.now(),
-            });
-          } catch (storeErr) {
-            console.error("Failed to save game to local store:", storeErr);
-          }
-        } else {
-          setError("Complete join transaction failed");
-          setStep("error");
-        }
-      } catch (err) {
-        setError(parseError(err));
-        setStep("error");
-      }
-    },
-    [contractAddress, publicClient, chain, address, writeContractAsync, addGame]
+    [contractAddress, address, chain, isInitialized, writeContractAsync, publicClient, addGame, completeWithCtHash]
   );
 
   return {
     requestJoin,
-    completeJoin,
     reset,
     step,
     currentGameId,
-    isLoading: isPending || step === "requesting" || step === "waiting" || step === "completing",
+    isLoading: isPending || step === "requesting" || step === "decrypting" || step === "completing",
     isSuccess,
     error,
   };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Hook: usePendingJoinStatus - Check if user has a pending join request
+// Hook: usePendingJoinStatus
 // ═══════════════════════════════════════════════════════════════════════════
 
 export interface PendingJoinInfo {
   gameId: bigint;
   hasPending: boolean;
-  isDecrypted: boolean;
-  isRegistered: boolean;
+  registered: boolean;
+  ctHash: `0x${string}`;
 }
 
 export function usePendingJoinStatus(gameId: bigint | null) {
@@ -612,7 +536,6 @@ export function usePendingJoinStatus(gameId: bigint | null) {
   const [status, setStatus] = useState<PendingJoinInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Use string for stable dependency comparison (bigint creates new objects)
   const gameIdStr = gameId?.toString() ?? null;
 
   const checkStatus = useCallback(async () => {
@@ -624,20 +547,18 @@ export function usePendingJoinStatus(gameId: bigint | null) {
     const gameIdBigInt = BigInt(gameIdStr);
     setIsLoading(true);
     try {
-      const result = await publicClient.readContract({
+      const [hasPending, registered, ctHash] = await publicClient.readContract({
         address: contractAddress,
         abi: SECRET_SANTA_ABI,
         functionName: "getJoinStatus",
         args: [gameIdBigInt, address],
       });
 
-      const [hasPending, isDecrypted, isRegistered] = result as [boolean, boolean, boolean];
-
       const info: PendingJoinInfo = {
         gameId: gameIdBigInt,
         hasPending,
-        isDecrypted,
-        isRegistered,
+        registered,
+        ctHash: ctHash as `0x${string}`,
       };
 
       setStatus(info);
@@ -651,7 +572,6 @@ export function usePendingJoinStatus(gameId: bigint | null) {
     }
   }, [publicClient, contractAddress, address, gameIdStr]);
 
-  // Check status on mount and when gameId changes
   useEffect(() => {
     checkStatus();
   }, [checkStatus]);
@@ -664,7 +584,7 @@ export function usePendingJoinStatus(gameId: bigint | null) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Hook: useCompleteJoinOnly - Complete a pending join request (retry step 2)
+// Hook: useCompleteJoinOnly - retry step 2 on an existing pending join
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function useCompleteJoinOnly() {
@@ -689,17 +609,14 @@ export function useCompleteJoinOnly() {
       setIsLoading(true);
 
       try {
-        // First check if we have a pending join that's ready
-        const status = await publicClient.readContract({
+        const [hasPending, registered, ctHash] = await publicClient.readContract({
           address: contractAddress,
           abi: SECRET_SANTA_ABI,
           functionName: "getJoinStatus",
           args: [gameId, address],
         });
 
-        const [hasPending, isDecrypted, isRegistered] = status as [boolean, boolean, boolean];
-
-        if (isRegistered) {
+        if (registered) {
           setError("Already registered in this game");
           setIsLoading(false);
           return null;
@@ -711,28 +628,25 @@ export function useCompleteJoinOnly() {
           return null;
         }
 
-        if (!isDecrypted) {
-          setError("Password verification not yet complete. Please wait and try again.");
-          setIsLoading(false);
-          return null;
-        }
+        const { decryptedValue, signature } = await getCofheClient()
+          .decryptForTx(ctHash as `0x${string}`)
+          .withPermit()
+          .execute();
 
-        // Ready to complete!
+        const matched = decryptedValue !== BigInt(0);
+
         const hash = await writeContractAsync({
           address: contractAddress,
           abi: SECRET_SANTA_ABI,
           functionName: "completeJoinGame",
-          args: [gameId],
+          args: [gameId, matched, signature],
         });
 
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
         if (receipt.status === "success") {
-          // Set success state FIRST before any additional RPC calls
-          // This ensures the UI shows success even if subsequent calls fail
           setIsSuccess(true);
 
-          // Try to fetch game info and save to local store (non-critical)
           try {
             const gameInfo = await publicClient.readContract({
               address: contractAddress,
@@ -783,7 +697,7 @@ export function useCompleteJoinOnly() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Hook: useFinalizeGame - Finalize a game (creator only)
+// Hook: useFinalizeGame
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function useFinalizeGame() {
@@ -808,7 +722,6 @@ export function useFinalizeGame() {
       setIsSimulating(true);
 
       try {
-        // First simulate the transaction to catch errors before sending
         await publicClient.simulateContract({
           address: contractAddress,
           abi: SECRET_SANTA_ABI,
@@ -826,7 +739,6 @@ export function useFinalizeGame() {
           args: [gameId],
         });
 
-        // Wait for transaction confirmation
         setIsConfirming(true);
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
         setIsConfirming(false);
@@ -859,7 +771,7 @@ export function useFinalizeGame() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Hook: useRevealGame - Reveal all assignments (creator only)
+// Hook: useRevealGame
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function useRevealGame() {
@@ -888,7 +800,6 @@ export function useRevealGame() {
           args: [gameId],
         });
 
-        // Wait for transaction confirmation
         setIsConfirming(true);
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
         setIsConfirming(false);
@@ -918,7 +829,7 @@ export function useRevealGame() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Hook: useParticipants - Get game participants
+// Hook: useParticipants
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function useParticipants(gameId: bigint | null) {
@@ -958,7 +869,7 @@ export function useParticipants(gameId: bigint | null) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Hook: useParticipantsWithNames - Get participants with their names
+// Hook: useParticipantsWithNames
 // ═══════════════════════════════════════════════════════════════════════════
 
 export interface ParticipantWithName {
@@ -982,7 +893,6 @@ export function useParticipantsWithNames(gameId: bigint | null) {
     setError(null);
 
     try {
-      // Fetch addresses and names in parallel
       const [addresses, names] = await Promise.all([
         publicClient.readContract({
           address: contractAddress,
@@ -1019,7 +929,7 @@ export function useParticipantsWithNames(gameId: bigint | null) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Hook: usePlayerName - Get a single player's name for a game
+// Hook: usePlayerName
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function usePlayerName(gameId: bigint | null, playerAddress: `0x${string}` | null) {
@@ -1056,7 +966,7 @@ export function usePlayerName(gameId: bigint | null, playerAddress: `0x${string}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Hook: useIsRegistered - Check if user is registered in a game
+// Hook: useIsRegistered
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function useIsRegistered(gameId: bigint | null) {
@@ -1094,7 +1004,7 @@ export function useIsRegistered(gameId: bigint | null) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Hook: useMyTarget - Get and unseal the user's encrypted target
+// Hook: useMyTarget - Decrypt the user's assigned target via permit
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function useMyTarget(gameId: bigint | null) {
@@ -1102,7 +1012,7 @@ export function useMyTarget(gameId: bigint | null) {
   const contractAddress = useContractAddress();
   const { address } = useAccount();
   const { isInitialized } = useCofheStore();
-  const [encryptedIndex, setEncryptedIndex] = useState<bigint | null>(null);
+  const [encryptedIndex, setEncryptedIndex] = useState<`0x${string}` | null>(null);
   const [targetIndex, setTargetIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1116,7 +1026,6 @@ export function useMyTarget(gameId: bigint | null) {
     setError(null);
 
     try {
-      // Get the encrypted target index
       const result = await publicClient.readContract({
         address: contractAddress,
         abi: SECRET_SANTA_ABI,
@@ -1125,8 +1034,9 @@ export function useMyTarget(gameId: bigint | null) {
         account: address,
       });
 
-      setEncryptedIndex(result as bigint);
-      return result as bigint;
+      const ctHash = result as `0x${string}`;
+      setEncryptedIndex(ctHash);
+      return ctHash;
     } catch (err) {
       setError(parseError(err));
       return null;
@@ -1145,16 +1055,13 @@ export function useMyTarget(gameId: bigint | null) {
     setError(null);
 
     try {
-      const result = await cofhejs.unseal(encryptedIndex, FheTypes.Uint32);
+      const plaintext = await getCofheClient()
+        .decryptForView(encryptedIndex, FheTypes.Uint32)
+        .execute();
 
-      if (result.success && result.data !== undefined) {
-        const index = Number(result.data);
-        setTargetIndex(index);
-        return index;
-      } else {
-        setError("Failed to unseal target - do you have a valid permit?");
-        return null;
-      }
+      const index = Number(plaintext);
+      setTargetIndex(index);
+      return index;
     } catch (err) {
       setError(parseError(err));
       return null;

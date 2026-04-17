@@ -10,7 +10,10 @@
     "copy-artifacts": "mkdir -p ../nextjs/src/contracts && cp -r artifacts/contracts ../nextjs/src/contracts/ 2>/dev/null || true && cp -r typechain-types ../nextjs/src/contracts/ 2>/dev/null || true"
   },
   "devDependencies": {
-    "@fhenixprotocol/cofhe-contracts": "0.0.13",
+    "@cofhe/hardhat-plugin": "0.4.0",
+    "@cofhe/mock-contracts": "0.4.0",
+    "@cofhe/sdk": "0.4.0",
+    "@fhenixprotocol/cofhe-contracts": "0.1.3",
     "@openzeppelin/contracts": "^5.0.0",
     "dotenv": "^16.4.5",
     "hardhat": "^2.22.0",

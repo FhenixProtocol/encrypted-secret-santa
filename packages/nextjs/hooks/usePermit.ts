@@ -1,18 +1,25 @@
 "use client";
 
-import { useState, useCallback, useSyncExternalStore } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import { useAccount } from "wagmi";
-import { cofhejs, permitStore } from "cofhejs/web";
+import { getCofheClient } from "@/services/cofhe-client";
 import { useCofheStore } from "@/services/store/cofheStore";
 
-// Snapshot function to get permit status
-const getPermitSnapshot = () => {
-  const permitResult = cofhejs?.getPermit();
-  return !!(permitResult?.success && permitResult?.data);
+const subscribePermits = (listener: () => void) => {
+  try {
+    return getCofheClient().permits.subscribe(listener);
+  } catch {
+    return () => {};
+  }
 };
 
-// Server snapshot (always false)
-const getServerSnapshot = () => false;
+const getPermitsSnapshot = () => {
+  try {
+    return getCofheClient().permits.getSnapshot();
+  } catch {
+    return null;
+  }
+};
 
 export function usePermit() {
   const { address, chainId } = useAccount();
@@ -21,22 +28,20 @@ export function usePermit() {
   const [isGeneratingPermit, setIsGeneratingPermit] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Use useSyncExternalStore to subscribe to permit changes
-  const hasValidPermit = useSyncExternalStore(
-    permitStore.store.subscribe,
-    () => (isCofheInitialized ? getPermitSnapshot() : false),
-    getServerSnapshot
-  );
+  // Re-render when permits store changes
+  useSyncExternalStore(subscribePermits, getPermitsSnapshot, () => null);
 
-  // Check for valid permit (manual check)
-  const checkPermit = useCallback(() => {
-    if (!isCofheInitialized) {
+  const hasValidPermit = (() => {
+    if (!isCofheInitialized || !address || !chainId) return false;
+    try {
+      return !!getCofheClient().permits.getActivePermit(chainId, address);
+    } catch {
       return false;
     }
-    return getPermitSnapshot();
-  }, [isCofheInitialized]);
+  })();
 
-  // Generate new permit
+  const checkPermit = useCallback(() => hasValidPermit, [hasValidPermit]);
+
   const generatePermit = useCallback(async () => {
     if (!isCofheInitialized || !address || isGeneratingPermit) {
       return { success: false, error: "Not ready to generate permit" };
@@ -50,60 +55,33 @@ export function usePermit() {
       const expirationDate = new Date();
       expirationDate.setDate(expirationDate.getDate() + 30);
 
-      const result = await cofhejs.createPermit({
-        type: "self",
-        name: permitName,
+      await getCofheClient().permits.getOrCreateSelfPermit(undefined, undefined, {
         issuer: address,
+        name: permitName,
         expiration: Math.round(expirationDate.getTime() / 1000),
       });
 
-      if (result?.success) {
-        console.log("Permit created successfully");
-        setError(null);
-        return { success: true };
-      } else {
-        const errorMessage =
-          result?.error?.message || "Failed to create permit";
-        setError(errorMessage);
-        return { success: false, error: errorMessage };
-      }
+      return { success: true as const };
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Unknown error generating permit";
       setError(errorMessage);
-      return { success: false, error: errorMessage };
+      return { success: false as const, error: errorMessage };
     } finally {
       setIsGeneratingPermit(false);
     }
   }, [isCofheInitialized, address, isGeneratingPermit]);
 
-  // Remove permit function
   const removePermit = useCallback(async () => {
-    if (!isCofheInitialized || !chainId || !address) {
-      console.log("Cannot remove permit: missing required data");
-      return false;
-    }
+    if (!isCofheInitialized || !chainId || !address) return false;
 
     try {
-      // Get current active permit hash
-      const activePermitResult = cofhejs?.getPermit();
-      if (!activePermitResult?.success || !activePermitResult?.data) {
-        console.log("No active permit to remove");
-        return false;
-      }
+      const client = getCofheClient();
+      const active = client.permits.getActivePermitHash(chainId, address);
+      if (!active) return false;
 
-      // Remove the permit from the store
-      const allPermits = permitStore.getPermits(chainId.toString(), address);
-      if (allPermits && Object.keys(allPermits).length > 0) {
-        const permitHash = Object.keys(allPermits)[0];
-        permitStore.removePermit(chainId.toString(), address, permitHash, true);
-      } else {
-        console.log("No permits found to remove");
-        return false;
-      }
-
+      client.permits.removePermit(active, chainId, address);
       setError(null);
-      console.log("Permit removed successfully");
       return true;
     } catch (err) {
       console.error("Error removing permit:", err);
